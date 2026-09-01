@@ -111,9 +111,9 @@ void HackPackNixieClock::loop() {
     }
   }
 
-  // 8. Render Hardware LEDs at ~50Hz (20ms intervals)
+  // 8. Render Hardware LEDs at ~50Hz (20ms intervals) after a 1200ms boot power-stabilization grace period
   static uint32_t last_render = 0;
-  if (now_ms - last_render >= 20) {
+  if (now_ms >= 1200 && now_ms - last_render >= 20) {
     last_render = now_ms;
     render_hardware_leds_();
   }
