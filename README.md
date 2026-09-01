@@ -302,9 +302,29 @@ cards:
 
 ---
 
-## Complete Example YAML Configuration
+## ⚡ Power Management & OTA Update Brownout Protection
 
-See [`examples/nixie_clock_complete.yaml`](examples/nixie_clock_complete.yaml) for a complete, ready-to-flash configuration file.
+### The Brownout Phenomenon During OTA
+The ESP32-C3 Mini MCU powers all **55 WS2812 LEDs** (42 tube panel segments + 13 underglow LEDs), Wi-Fi transceiver, and internal SPI flash memory from the USB 5V/3.3V power rails.
+
+During an **Over-The-Air (OTA) firmware update**, high-throughput Wi-Fi reception combined with rapid SPI flash memory write/erase cycles creates temporary current surges. If the LEDs remain illuminated during flashing:
+1. Voltage can briefly sag below the default ESP32-C3 hardware brownout detection threshold (~2.8V).
+2. The hardware brownout detector immediately triggers a hard reset/reboot.
+3. The OTA update fails midway or connection is lost.
+
+### Built-in Firmware Mitigations
+This integration includes multi-layered protections configured out of the box in [`packages/nixie_clock.yaml`](packages/nixie_clock.yaml):
+
+1. **Automatic Pre-Flight Blackout Hook (`set_ready_for_ota()`)**:
+   When an OTA update begins, the component's `ota: on_begin` trigger automatically zeroes out all 55 LEDs and disables the display, reducing current draw to near zero before writing flash sectors.
+2. **Post-Flash Dark Mode (`on_end`)**:
+   Maintains blackout state until the MCU successfully finishes rebooting into the new firmware.
+3. **Calibrated Brownout Level Configuration**:
+   In `esp32.framework.sdkconfig_options`, `CONFIG_ESP_BROWNOUT_DET_LVL_SEL_0: y` lowers the brownout trigger threshold to **2.41V**, giving maximum headroom against transient voltage dips.
+
+### Best Practices for Reliable Updates
+- **Power Supply**: Power the clock with a dedicated **5V 2A (10W+)** USB-C power supply. Avoid unpowered USB hubs or long, thin USB cables with high internal resistance.
+- **Manual Blackout (Optional)**: If you are building a custom YAML without the package import, ensure `set_ready_for_ota()` is invoked in your `ota: on_begin` hook or turn off the lights before flashing.
 
 ---
 
