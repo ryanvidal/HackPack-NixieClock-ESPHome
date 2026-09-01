@@ -1,0 +1,49 @@
+# ==============================================================================
+# ESPHome Basic Configuration for Hack Pack Nixie Clock
+# Board: Hack Pack ESP32-C3 Mini (Box 15)
+#
+# This basic example imports the complete pre-configured package.
+# Users only need to supply their Wi-Fi credentials and API encryption key.
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Import Reusable Package
+# ------------------------------------------------------------------------------
+packages:
+  # For local installations (cloned repository):
+  hack_pack_nixie_clock: !include ../packages/nixie_clock.yaml
+
+  # Or for direct remote GitHub imports:
+  # hack_pack_nixie_clock:
+  #   url: https://github.com/ryanvidal/HackPack-NixieClock-ESPHome
+  #   ref: main
+  #   files: [packages/nixie_clock.yaml]
+
+# ------------------------------------------------------------------------------
+# 2. External Component Location
+# ------------------------------------------------------------------------------
+external_components:
+  - source:
+      type: local
+      path: components
+    components: [hack_pack_nixie_clock]
+
+  # Or for direct remote GitHub imports:
+  # - source: github://ryanvidal/HackPack-NixieClock-ESPHome@main
+  #   components: [hack_pack_nixie_clock]
+
+# ------------------------------------------------------------------------------
+# 3. Security & Network Credentials
+# ------------------------------------------------------------------------------
+api:
+  encryption:
+    key: "8i45eOZdKzZQ8YGeFdT+ilopNh075J5aBgEnZTZUeT4="
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: Hack Pack Nixie Fallback Hotspot
+    password: "IXtO3BrtHqLm"
+
+captive_portal:
