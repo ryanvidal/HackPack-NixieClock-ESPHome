@@ -567,8 +567,28 @@ void HackPackNixieClock::set_underglow_brightness(uint8_t brightness) {
 }
 
 void HackPackNixieClock::set_ready_for_ota() {
+  display_mode_ = MODE_OFF;
+  link_brightness_ = false; // Decouple so underglow stays lit as a low-power OTA status glow
   panel_brightness_ = 0;
   underglow_brightness_ = 64; // ~25% brightness for low power
+
+  // Ensure underglow LEDs have visible warm amber color if they were previously off/black
+  bool has_ug_color = false;
+  for (int i = 0; i < 13; i++) {
+    if (underglow_rgb_[i][0] > 0 || underglow_rgb_[i][1] > 0 || underglow_rgb_[i][2] > 0) {
+      has_ug_color = true;
+      break;
+    }
+  }
+  if (!has_ug_color) {
+    for (int i = 0; i < 13; i++) {
+      underglow_rgb_[i][0] = 255;
+      underglow_rgb_[i][1] = 140;
+      underglow_rgb_[i][2] = 0;
+    }
+  }
+
+  render_hardware_leds_();
 }
 
 void HackPackNixieClock::set_panel_color_pos(uint8_t pos) {
