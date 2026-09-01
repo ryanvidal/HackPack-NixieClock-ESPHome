@@ -746,7 +746,9 @@ void HackPackNixieClock::show_scrolling_text(const std::string &message, uint32_
   text_phase_ = TEXT_PHASE_BLANK_START;
   text_phase_end_ = millis() + 1000;
   show_string_("      ");
-  ESP_LOGI(TAG, "Displaying message: '%s' (speed %ums)", message.c_str(), (unsigned int)scroll_speed_ms_);
+  std::string sanitized = sanitize_nixie_text(message);
+  ESP_LOGI(TAG, "Displaying message: '%s' (sanitized: '%s', speed %ums)",
+           message.c_str(), sanitized.c_str(), (unsigned int)scroll_speed_ms_);
 }
 
 void HackPackNixieClock::show_custom_text(const std::string &text, uint32_t duration_seconds) {
