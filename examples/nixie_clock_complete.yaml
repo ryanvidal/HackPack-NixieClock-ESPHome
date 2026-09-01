@@ -1,0 +1,468 @@
+# ==============================================================================
+# ESPHome Example Configuration for Hack Pack Nixie Clock (Box 15)
+# Board: ESP32-C3 Mini
+# ==============================================================================
+
+esphome:
+  name: hack-pack-nixie-clock
+  friendly_name: Hack Pack Nixie Clock
+
+esp32:
+  variant: esp32c3
+  framework:
+    type: esp-idf
+
+logger:
+  level: INFO
+
+api:
+  encryption:
+    key: "YOUR_API_ENCRYPTION_KEY"
+  services:
+    # --------------------------------------------------------------------------
+    # Service: Display Custom Text on Nixie Tubes
+    # --------------------------------------------------------------------------
+    - service: display_text
+      variables:
+        message: string
+        duration_seconds: int
+      then:
+        - lambda: |-
+            uint32_t dur = (duration_seconds > 0) ? duration_seconds : 5;
+            id(clock_hub).show_custom_text(message, dur);
+
+    # --------------------------------------------------------------------------
+    # Service: Trigger Face Animation
+    # --------------------------------------------------------------------------
+    - service: trigger_face_animation
+      then:
+        - lambda: |-
+            id(clock_hub).trigger_face_animation();
+
+    # --------------------------------------------------------------------------
+    # Service: Trigger Cathode Clean / Slot Machine Animation
+    # --------------------------------------------------------------------------
+    - service: trigger_slot_machine
+      variables:
+        duration_ms: int
+      then:
+        - lambda: |-
+            uint32_t dur = (duration_ms > 0) ? duration_ms : 2500;
+            id(clock_hub).trigger_slot_machine(dur);
+
+    # --------------------------------------------------------------------------
+    # Service: Play Voice Recording / Sound Beep
+    # --------------------------------------------------------------------------
+    - service: play_sound
+      then:
+        - lambda: |-
+            id(clock_hub).play_beep(150);
+
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: Hack Pack Nixie Fallback Hotspot
+    password: "YOUR_FALLBACK_PASSWORD"
+
+captive_portal:
+
+# ==============================================================================
+# Time Source
+# ==============================================================================
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+
+# ==============================================================================
+# External Component: Hack Pack Nixie Clock
+# ==============================================================================
+external_components:
+  # Option A: From Local Directory
+  - source:
+      type: local
+      path: components
+  # Option B: From Remote GitHub (Uncomment when published)
+  # - source: github://YOUR_GITHUB_USERNAME/hack-pack-nixie-clock
+  #   components: [ hack_pack_nixie_clock ]
+
+# ==============================================================================
+# Hack Pack Nixie Clock Component
+# All pins default automatically to the Hack Pack Box 15 hardware!
+# ==============================================================================
+hack_pack_nixie_clock:
+  id: clock_hub
+  time_id: homeassistant_time
+
+# ==============================================================================
+# Home Assistant Controls & Entities
+# ==============================================================================
+
+datetime:
+  - platform: template
+    type: time
+    name: "Alarm Time"
+    id: alarm_time_picker
+    icon: "mdi:clock-edit-outline"
+    initial_value: "07:00:00"
+    optimistic: true
+    set_action:
+      - lambda: |-
+          id(clock_hub).set_alarm(x.hour, x.minute);
+
+switch:
+  - platform: template
+    name: "24-Hour Format"
+    id: switch_24hr_mode
+    icon: "mdi:clock-time-twelve-outline"
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: true
+    turn_on_action:
+      - lambda: id(clock_hub).set_24hr_mode(true);
+    turn_off_action:
+      - lambda: id(clock_hub).set_24hr_mode(false);
+
+  - platform: template
+    name: "Leading Zero"
+    id: switch_leading_zero
+    icon: "mdi:numeric-0"
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: true
+    turn_on_action:
+      - lambda: id(clock_hub).set_leading_zero(true);
+    turn_off_action:
+      - lambda: id(clock_hub).set_leading_zero(false);
+
+  - platform: template
+    name: "Colon Blinking"
+    id: switch_colon_blinking
+    icon: "mdi:dots-vertical"
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: true
+    turn_on_action:
+      - lambda: id(clock_hub).set_colon_blinking(true);
+    turn_off_action:
+      - lambda: id(clock_hub).set_colon_blinking(false);
+
+  - platform: template
+    name: "AM⁄PM Indicators"
+    id: switch_am_pm_indicators
+    icon: "mdi:theme-light-dark"
+    restore_mode: RESTORE_DEFAULT_ON
+    optimistic: true
+    turn_on_action:
+      - lambda: id(clock_hub).set_am_pm_indicators(true);
+    turn_off_action:
+      - lambda: id(clock_hub).set_am_pm_indicators(false);
+
+  - platform: template
+    name: "Periodic Face Animations"
+    id: switch_face_animations
+    icon: "mdi:emoticon-outline"
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: true
+    turn_on_action:
+      - lambda: id(clock_hub).set_face_animations(true);
+    turn_off_action:
+      - lambda: id(clock_hub).set_face_animations(false);
+
+  - platform: template
+    name: "Alarm Enabled"
+    id: switch_alarm_enabled
+    icon: "mdi:alarm-check"
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: true
+    turn_on_action:
+      - lambda: id(clock_hub).arm_alarm();
+    turn_off_action:
+      - lambda: id(clock_hub).disarm_alarm();
+
+  - platform: template
+    name: "Physical Buttons Enabled"
+    id: switch_physical_buttons
+    icon: "mdi:gesture-tap-button"
+    restore_mode: RESTORE_DEFAULT_ON
+    optimistic: true
+    turn_on_action:
+      - lambda: id(clock_hub).set_physical_buttons(true);
+    turn_off_action:
+      - lambda: id(clock_hub).set_physical_buttons(false);
+
+  - platform: template
+    name: "Record Sound (Hold)"
+    id: switch_record_sound
+    icon: "mdi:microphone"
+    optimistic: true
+    turn_on_action:
+      - lambda: id(clock_hub).set_record_sound(true);
+    turn_off_action:
+      - lambda: id(clock_hub).set_record_sound(false);
+
+select:
+  - platform: template
+    name: "Color Animation Mode"
+    id: select_color_mode
+    icon: "mdi:palette"
+    optimistic: true
+    initial_option: "Rainbow"
+    options:
+      - "Rainbow"
+      - "Solid"
+      - "Gradient"
+      - "Flow"
+      - "Wipe"
+      - "Pulse"
+      - "Bounce"
+    set_action:
+      - lambda: |-
+          if (x == "Rainbow") id(clock_hub).set_color_mode(esphome::hack_pack_nixie_clock::COLOR_RAINBOW);
+          else if (x == "Solid") id(clock_hub).set_color_mode(esphome::hack_pack_nixie_clock::COLOR_SOLID);
+          else if (x == "Gradient") id(clock_hub).set_color_mode(esphome::hack_pack_nixie_clock::COLOR_GRADIENT);
+          else if (x == "Flow") id(clock_hub).set_color_mode(esphome::hack_pack_nixie_clock::COLOR_FLOW);
+          else if (x == "Wipe") id(clock_hub).set_color_mode(esphome::hack_pack_nixie_clock::COLOR_WIPE);
+          else if (x == "Pulse") id(clock_hub).set_color_mode(esphome::hack_pack_nixie_clock::COLOR_PULSE);
+          else if (x == "Bounce") id(clock_hub).set_color_mode(esphome::hack_pack_nixie_clock::COLOR_BOUNCE);
+
+  - platform: template
+    name: "Display Mode"
+    id: select_display_mode
+    icon: "mdi:monitor"
+    optimistic: true
+    initial_option: "Time"
+    options:
+      - "Time"
+      - "Timer"
+      - "Alarm View"
+      - "Slot Machine"
+      - "Faces"
+      - "Custom Text"
+      - "Off"
+    set_action:
+      - lambda: |-
+          if (x == "Time") id(clock_hub).set_display_mode(esphome::hack_pack_nixie_clock::MODE_TIME);
+          else if (x == "Timer") id(clock_hub).set_display_mode(esphome::hack_pack_nixie_clock::MODE_TIMER);
+          else if (x == "Alarm View") id(clock_hub).set_display_mode(esphome::hack_pack_nixie_clock::MODE_ALARM);
+          else if (x == "Slot Machine") id(clock_hub).trigger_slot_machine(2500);
+          else if (x == "Faces") id(clock_hub).trigger_face_animation();
+          else if (x == "Custom Text") id(clock_hub).set_display_mode(esphome::hack_pack_nixie_clock::MODE_CUSTOM_TEXT);
+          else if (x == "Off") id(clock_hub).set_display_mode(esphome::hack_pack_nixie_clock::MODE_OFF);
+
+  - platform: template
+    name: "Colon Color Mode"
+    id: select_colon_mode
+    icon: "mdi:circle-half-full"
+    optimistic: true
+    initial_option: "Auto Blend"
+    options:
+      - "Auto Blend"
+      - "Match Underglow"
+      - "Fixed"
+    set_action:
+      - lambda: |-
+          if (x == "Auto Blend") id(clock_hub).set_colon_mode(esphome::hack_pack_nixie_clock::COLON_AUTO_BLEND);
+          else if (x == "Match Underglow") id(clock_hub).set_colon_mode(esphome::hack_pack_nixie_clock::COLON_MATCH_UNDERGLOW);
+          else if (x == "Fixed") id(clock_hub).set_colon_mode(esphome::hack_pack_nixie_clock::COLON_FIXED);
+
+number:
+  - platform: template
+    name: "Panel Brightness"
+    id: number_panel_brightness
+    icon: "mdi:brightness-6"
+    min_value: 0
+    max_value: 100
+    step: 1
+    initial_value: 100
+    unit_of_measurement: "%"
+    optimistic: true
+    set_action:
+      - lambda: |-
+          id(clock_hub).set_panel_brightness((uint8_t)(x * 255 / 100));
+
+  - platform: template
+    name: "Underglow Brightness"
+    id: number_ug_brightness
+    icon: "mdi:brightness-5"
+    min_value: 0
+    max_value: 100
+    step: 1
+    initial_value: 100
+    unit_of_measurement: "%"
+    optimistic: true
+    set_action:
+      - lambda: |-
+          id(clock_hub).set_underglow_brightness((uint8_t)(x * 255 / 100));
+
+  - platform: template
+    name: "Panel Color Position"
+    id: number_panel_color_pos
+    icon: "mdi:palette-swatch"
+    min_value: 0
+    max_value: 255
+    step: 1
+    initial_value: 200
+    optimistic: true
+    set_action:
+      - lambda: id(clock_hub).set_panel_color_pos((uint8_t)x);
+
+  - platform: template
+    name: "Underglow Color Position"
+    id: number_ug_color_pos
+    icon: "mdi:palette-swatch-outline"
+    min_value: 0
+    max_value: 255
+    step: 1
+    initial_value: 200
+    optimistic: true
+    set_action:
+      - lambda: id(clock_hub).set_underglow_color_pos((uint8_t)x);
+
+  - platform: template
+    name: "Timer Hours"
+    id: number_timer_hours
+    icon: "mdi:timer-sand"
+    min_value: 0
+    max_value: 99
+    step: 1
+    initial_value: 0
+    optimistic: true
+
+  - platform: template
+    name: "Timer Minutes"
+    id: number_timer_minutes
+    icon: "mdi:timer-sand"
+    min_value: 0
+    max_value: 59
+    step: 1
+    initial_value: 5
+    optimistic: true
+
+  - platform: template
+    name: "Timer Seconds"
+    id: number_timer_seconds
+    icon: "mdi:timer-sand"
+    min_value: 0
+    max_value: 59
+    step: 1
+    initial_value: 0
+    optimistic: true
+
+button:
+  - platform: template
+    name: "Arm Alarm"
+    id: button_arm_alarm
+    icon: "mdi:alarm-plus"
+    on_press:
+      - lambda: |-
+          id(clock_hub).arm_alarm();
+          id(switch_alarm_enabled).publish_state(true);
+
+  - platform: template
+    name: "Disarm Alarm"
+    id: button_disarm_alarm
+    icon: "mdi:alarm-off"
+    on_press:
+      - lambda: |-
+          id(clock_hub).disarm_alarm();
+          id(switch_alarm_enabled).publish_state(false);
+
+  - platform: template
+    name: "Stop Ringing Alarm"
+    id: button_stop_alarm
+    icon: "mdi:alarm-snooze"
+    on_press:
+      - lambda: id(clock_hub).stop_alarm();
+
+  - platform: template
+    name: "Start Countdown Timer"
+    id: button_start_timer
+    icon: "mdi:timer-play-outline"
+    on_press:
+      - lambda: |-
+          uint32_t h = (uint32_t)id(number_timer_hours).state;
+          uint32_t m = (uint32_t)id(number_timer_minutes).state;
+          uint32_t s = (uint32_t)id(number_timer_seconds).state;
+          id(clock_hub).start_timer(h, m, s);
+          id(select_display_mode).publish_state("Timer");
+
+  - platform: template
+    name: "Stop Countdown Timer"
+    id: button_stop_timer
+    icon: "mdi:timer-stop-outline"
+    on_press:
+      - lambda: |-
+          id(clock_hub).stop_timer();
+          id(select_display_mode).publish_state("Time");
+
+  - platform: template
+    name: "Trigger Face Animation"
+    id: button_trigger_face
+    icon: "mdi:emoticon-wink-outline"
+    on_press:
+      - lambda: id(clock_hub).trigger_face_animation();
+
+  - platform: template
+    name: "Cathode Cleaning (Slot Machine)"
+    id: button_trigger_slot_machine
+    icon: "mdi:slot-machine"
+    on_press:
+      - lambda: id(clock_hub).trigger_slot_machine(2500);
+
+  - platform: template
+    name: "Play Audio Recording"
+    id: button_play_sound
+    icon: "mdi:volume-high"
+    on_press:
+      - lambda: id(clock_hub).play_beep(150);
+
+sensor:
+  - platform: template
+    name: "Timer Remaining Seconds"
+    id: sensor_timer_remaining_sec
+    icon: "mdi:timer-outline"
+    unit_of_measurement: "s"
+    accuracy_decimals: 0
+    lambda: |-
+      return id(clock_hub).get_timer_remaining_sec();
+
+text_sensor:
+  - platform: template
+    name: "Timer Remaining"
+    id: text_sensor_timer_formatted
+    icon: "mdi:timer-sand-full"
+    lambda: |-
+      char buf[16];
+      uint32_t s = id(clock_hub).get_timer_remaining_sec();
+      snprintf(buf, sizeof(buf), "%02lu:%02lu:%02lu", (unsigned long)(s / 3600), (unsigned long)((s % 3600) / 60), (unsigned long)(s % 60));
+      return std::string(buf);
+
+  - platform: template
+    name: "Active Display Characters"
+    id: text_sensor_display_chars
+    icon: "mdi:format-text"
+    lambda: |-
+      return std::string(id(clock_hub).get_current_display_text());
+
+binary_sensor:
+  - platform: template
+    name: "Alarm Ringing"
+    id: bs_alarm_ringing
+    icon: "mdi:alarm-bell"
+    lambda: |-
+      return id(clock_hub).is_alarm_ringing();
+
+  - platform: template
+    name: "Timer Running"
+    id: bs_timer_running
+    icon: "mdi:timer-outline"
+    lambda: |-
+      return id(clock_hub).is_timer_running();
+
+  - platform: template
+    name: "Timer Ringing"
+    id: bs_timer_ringing
+    icon: "mdi:bell-ring-outline"
+    lambda: |-
+      return id(clock_hub).is_timer_ringing();
