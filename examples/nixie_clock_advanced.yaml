@@ -237,9 +237,6 @@ text_sensor:
     timer_remaining:
       name: "Timer Remaining"
       device_id: dev_timer
-    active_display_chars:
-      name: "Active Display Characters"
-      device_id: dev_clock
 
 binary_sensor:
   - platform: hack_pack_nixie_clock
