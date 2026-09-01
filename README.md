@@ -17,31 +17,36 @@ This integration provides a feature-complete **Home Assistant** integration whil
 - 🕒 **Native Time & Date Synchronization**: Automatically keeps accurate time synced from Home Assistant / NTP with 12-hour and 24-hour modes.
 - 🎨 **Native RGB Color Pickers**: Full Home Assistant color wheel support for both the Nixie tube panel and underglow LEDs via native `light` entities with brightness sliders and built-in animation effects.
 - 🌈 **7 Color Animation Modes**: `Rainbow`, `Solid`, `Gradient`, `Flow`, `Wipe`, `Pulse`, and `Bounce`.
-- 🔗 **Brightness Linking**: Optional control to synchronize panel and underglow brightness levels seamlessly.
-- 💡 **Dynamic Underglow & Colons**: Underglow color control, AM/PM indicators, colon blinking, and automatic inter-panel color blending.
+- 🔗 **Optical 80% Brightness Linking**: Synchronizes tube panel and underglow brightness levels using a calibrated 80% ratio to match lumens behind the acrylic darkening film.
+- 💡 **Dynamic Underglow & Colons**: Underglow color control, AM/PM indicators, colon blinking, and automatic inter-panel color blending. Colons automatically turn completely off during message displays.
 - ⏰ **Smart Alarm & Countdown Timers**: Native Home Assistant time-picker widget for alarm and idiomatic `HH:MM:SS` duration picker for countdown timers with live formatted `"HH:MM:SS"` sensors and audio beeper notifications.
-- 🎙️ **Voice Speaker Media Player**: Exposes the onboard sound recorder module as a native Home Assistant `media_player` entity with Play/Stop controls.
+- 🎙️ **Voice Speaker Media Player**: Exposes the onboard sound recorder module with record/playback triggers.
 - 🕹️ **Local Physical Buttons**: Full button debouncing and hardware navigation preserved, with the ability to lock/disable buttons from Home Assistant.
-- 🚀 **Flicker-Free IRAM Driver**: Custom cycle-accurate WS2812 bit-banging engine running in internal RAM (`IRAM_ATTR`), eliminating FreeRTOS/WiFi single-core preemption and digit flickering.
-- 💬 **Multi-Phase Alert & Scrolling Text Service**: Attention-grabbing message board sequence: 1s blank $\rightarrow$ 2s flashing `"!!!!!!"` alert strobe $\rightarrow$ smooth right-to-left scrolling $\rightarrow$ 1s trailing blank $\rightarrow$ return to clock.
+- 🚀 **Flicker-Free IRAM Driver**: Custom cycle-accurate WS2812 bit-banging engine running in internal RAM (`IRAM_ATTR`) with Perceptual Gamma 2.4 curve table, eliminating FreeRTOS/WiFi single-core preemption and digit flickering.
+- 💬 **Multi-Phase Alert & Scrolling Text Service**: Attention-grabbing message board sequence: 1s blank $\rightarrow$ 2s flashing `"- - - "` alert strobe $\rightarrow$ smooth right-to-left scrolling $\rightarrow$ 1s trailing blank $\rightarrow$ return to clock.
 
 ---
 
 ## Repository Structure
 
-To use this repo as a remote ESPHome external component, the directory structure is organized as follows:
-
 ```text
 hack-pack-nixie-clock/
 ├── components/
 │   └── hack_pack_nixie_clock/
-│       ├── __init__.py
-│       ├── light.py
-│       ├── media_player.py
+│       ├── __init__.py          # Component schema, actions & setup
+│       ├── types.h              # Enums, structs & NVS storage schema
+│       ├── font_map.h           # 7-segment character lookup tables
+│       ├── hardware_leds.h/.cpp # WS2812 IRAM driver & Gamma 2.4 table
+│       ├── light_output.h/.cpp  # RGB LightOutput, LightEffects & Listener
+│       ├── entities.h/.cpp      # Switch, Button, Select, Number, Text, Time entities
+│       ├── automation.h         # ESPHome action template classes
 │       ├── hack_pack_nixie_clock.h
 │       └── hack_pack_nixie_clock.cpp
+├── packages/
+│   └── nixie_clock.yaml         # Ready-to-use drop-in package
 ├── examples/
-│   └── nixie_clock_complete.yaml
+│   ├── nixie_clock_basic.yaml
+│   └── nixie_clock_advanced.yaml
 └── README.md
 ```
 

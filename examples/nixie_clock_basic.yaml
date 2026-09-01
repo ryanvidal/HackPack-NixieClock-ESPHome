@@ -25,7 +25,7 @@ packages:
 external_components:
   - source:
       type: local
-      path: components
+      path: ../components
     components: [hack_pack_nixie_clock]
 
   # Or for direct remote GitHub imports:
