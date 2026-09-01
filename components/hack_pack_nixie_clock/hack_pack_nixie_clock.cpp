@@ -27,8 +27,7 @@ static const char NIXIE_CHARSET_MAP[] = {
   ' ', '0','1','2','3','4','5','6','7','8','9',
   'a','b','c','d','e','f','g','h','i','j','k',
   'l','m','n','o','p','q','r','s','t','u','v',
-  'w','x','y','z','-','_','^','@','#','<','>','O',
-  '!', '?', '.', ':', ',', '=', '/', '\\', '[', ']'
+  'w','x','y','z','-','_'
 };
 
 static const bool NIXIE_SEGMENT_MAP[][7] = {
@@ -70,23 +69,7 @@ static const bool NIXIE_SEGMENT_MAP[][7] = {
   {1, 1, 0, 0, 1, 1, 1}, // 'y'
   {1, 0, 1, 1, 0, 0, 1}, // 'z'
   {0, 1, 0, 0, 0, 0, 0}, // '-'
-  {1, 0, 0, 0, 0, 0, 0}, // '_'
-  {0, 0, 1, 0, 1, 0, 1}, // '^'
-  {0, 0, 1, 0, 1, 0, 0}, // '@'
-  {0, 0, 1, 0, 0, 0, 1}, // '#'
-  {1, 0, 0, 1, 0, 0, 0}, // '<'
-  {1, 0, 0, 0, 0, 1, 0}, // '>'
-  {0, 1, 1, 0, 1, 0, 1}, // 'O'
-  {1, 0, 0, 0, 0, 0, 1}, // '!' (bottom + R-upper)
-  {1, 1, 1, 0, 0, 0, 1}, // '?' (bottom + mid + top + R-upper)
-  {1, 0, 0, 0, 0, 0, 0}, // '.' (bottom)
-  {1, 0, 1, 0, 0, 0, 0}, // ':' (bottom + top)
-  {0, 0, 0, 1, 0, 0, 0}, // ',' (L-lower)
-  {1, 1, 0, 0, 0, 0, 0}, // '=' (bottom + mid)
-  {0, 1, 0, 1, 0, 0, 1}, // '/' (mid + L-lower + R-upper)
-  {0, 1, 0, 0, 1, 1, 0}, // '\' (mid + L-upper + R-lower)
-  {1, 0, 1, 1, 1, 0, 0}, // '[' (bottom + top + L-lower + L-upper)
-  {1, 0, 1, 0, 0, 1, 1}  // ']' (bottom + top + R-lower + R-upper)
+  {1, 0, 0, 0, 0, 0, 0}  // '_'
 };
 
 HackPackNixieClock::HackPackNixieClock() {
@@ -568,24 +551,23 @@ void HackPackNixieClock::set_underglow_brightness(uint8_t brightness) {
 
 void HackPackNixieClock::set_ready_for_ota() {
   display_mode_ = MODE_OFF;
-  link_brightness_ = false; // Decouple so underglow stays lit as a low-power OTA status glow
+  link_brightness_ = false;
   panel_brightness_ = 0;
-  underglow_brightness_ = 64; // ~25% brightness for low power
+  underglow_brightness_ = 0;
 
-  // Ensure underglow LEDs have visible warm amber color if they were previously off/black
-  bool has_ug_color = false;
-  for (int i = 0; i < 13; i++) {
-    if (underglow_rgb_[i][0] > 0 || underglow_rgb_[i][1] > 0 || underglow_rgb_[i][2] > 0) {
-      has_ug_color = true;
-      break;
+  // Zero out all 42 panel LEDs and 13 underglow LEDs to eliminate power consumption during OTA flashing
+  for (int p = 0; p < 6; p++) {
+    for (int s = 0; s < 7; s++) {
+      panel_segments_[p][s] = false;
+      panel_rgb_[p][s][0] = 0;
+      panel_rgb_[p][s][1] = 0;
+      panel_rgb_[p][s][2] = 0;
     }
   }
-  if (!has_ug_color) {
-    for (int i = 0; i < 13; i++) {
-      underglow_rgb_[i][0] = 255;
-      underglow_rgb_[i][1] = 140;
-      underglow_rgb_[i][2] = 0;
-    }
+  for (int i = 0; i < 13; i++) {
+    underglow_rgb_[i][0] = 0;
+    underglow_rgb_[i][1] = 0;
+    underglow_rgb_[i][2] = 0;
   }
 
   render_hardware_leds_();
@@ -852,7 +834,7 @@ void HackPackNixieClock::update_display_state_() {
           text_phase_end_ = now_ms + 2000;
           flash_toggle_time_ = now_ms;
           flash_state_ = true;
-          show_string_("!!!!!!");
+          show_string_("- - - ");
         }
         break;
 
@@ -860,7 +842,7 @@ void HackPackNixieClock::update_display_state_() {
         if (now_ms - flash_toggle_time_ >= 250) {
           flash_toggle_time_ = now_ms;
           flash_state_ = !flash_state_;
-          show_string_(flash_state_ ? "!!!!!!" : "      ");
+          show_string_(flash_state_ ? "- - - " : "      ");
         }
         if (now_ms >= text_phase_end_) {
           text_phase_ = TEXT_PHASE_SCROLL;
@@ -1070,19 +1052,35 @@ void HackPackNixieClock::update_display_state_() {
 // =============================================================================
 // Underglow & Indicators Update
 // =============================================================================
-void HackPackNixieClock::update_underglow_() {
-  ESPTime now_time = time_source_ ? time_source_->now() : ESPTime{};
-  uint8_t sec = now_time.is_valid() ? now_time.second : 0;
-  if (sec != last_sec_) {
-    last_sec_ = sec;
-    colon_blink_state_ = !colon_blink_state_;
+// =============================================================================
+// Underglow & Indicators Update
+// =============================================================================
+void HackPackNixieClock::update_colons_(uint32_t base_ug) {
+  bool colons_active = false;
+
+  // Determine colon activation based on display mode
+  switch (display_mode_) {
+    case MODE_TIME:
+    case MODE_TIMER:
+    case MODE_ALARM:
+      colons_active = (!colon_blinking_ || colon_blink_state_);
+      break;
+
+    case MODE_CUSTOM_TEXT:
+    case MODE_FACE:
+    case MODE_SLOT_MACHINE:
+    case MODE_OFF:
+    default:
+      colons_active = false;
+      break;
   }
 
-  uint32_t base_ug = use_ug_custom_rgb_ ? make_rgb_(ug_custom_r_, ug_custom_g_, ug_custom_b_) : wheel_(underglow_color_pos_);
+  // Double safety: Keep colons off whenever a message sequence is active
+  if (text_phase_ != TEXT_PHASE_IDLE) {
+    colons_active = false;
+  }
 
-  // 1. Colons (LED 0 and 1)
-  bool colons_lit = !colon_blinking_ || colon_blink_state_;
-  if (colons_lit) {
+  if (colons_active) {
     uint32_t col0 = base_ug, col1 = base_ug;
     if (colon_mode_ == COLON_AUTO_BLEND && display_mode_ == MODE_TIME) {
       col0 = blend_two_panels_(1, 2);
@@ -1098,27 +1096,28 @@ void HackPackNixieClock::update_underglow_() {
     underglow_rgb_[0][0] = 0; underglow_rgb_[0][1] = 0; underglow_rgb_[0][2] = 0;
     underglow_rgb_[1][0] = 0; underglow_rgb_[1][1] = 0; underglow_rgb_[1][2] = 0;
   }
+}
 
-  // 2. Badge Glow (LEDs 2..9)
-  for (int i = 2; i < 10; i++) {
-    underglow_rgb_[i][0] = red_(base_ug);
-    underglow_rgb_[i][1] = green_(base_ug);
-    underglow_rgb_[i][2] = blue_(base_ug);
+void HackPackNixieClock::update_ampm_indicators_(const ESPTime &now_time) {
+  bool ampm_active = false;
+
+  switch (display_mode_) {
+    case MODE_TIME:
+      ampm_active = am_pm_enabled_ && now_time.is_valid() && !timer_running_ && (text_phase_ == TEXT_PHASE_IDLE);
+      break;
+
+    case MODE_TIMER:
+    case MODE_ALARM:
+    case MODE_CUSTOM_TEXT:
+    case MODE_FACE:
+    case MODE_SLOT_MACHINE:
+    case MODE_OFF:
+    default:
+      ampm_active = false;
+      break;
   }
 
-  // 3. Alarm Indicator (LED 10)
-  if (alarm_enabled_ || alarm_ringing_) {
-    underglow_rgb_[10][0] = 255;
-    underglow_rgb_[10][1] = 0;
-    underglow_rgb_[10][2] = 0;
-  } else {
-    underglow_rgb_[10][0] = 0;
-    underglow_rgb_[10][1] = 0;
-    underglow_rgb_[10][2] = 0;
-  }
-
-  // 4. AM/PM Indicators (LED 11 = AM Amber, LED 12 = PM Purple)
-  if (am_pm_enabled_ && now_time.is_valid() && display_mode_ == MODE_TIME && !timer_running_) {
+  if (ampm_active) {
     bool is_pm = (now_time.hour >= 12);
     if (is_pm) {
       underglow_rgb_[11][0] = 0;  underglow_rgb_[11][1] = 0;  underglow_rgb_[11][2] = 0;
@@ -1131,6 +1130,41 @@ void HackPackNixieClock::update_underglow_() {
     underglow_rgb_[11][0] = 0; underglow_rgb_[11][1] = 0; underglow_rgb_[11][2] = 0;
     underglow_rgb_[12][0] = 0; underglow_rgb_[12][1] = 0; underglow_rgb_[12][2] = 0;
   }
+}
+
+void HackPackNixieClock::update_underglow_() {
+  ESPTime now_time = time_source_ ? time_source_->now() : ESPTime{};
+  uint8_t sec = now_time.is_valid() ? now_time.second : 0;
+  if (sec != last_sec_) {
+    last_sec_ = sec;
+    colon_blink_state_ = !colon_blink_state_;
+  }
+
+  uint32_t base_ug = use_ug_custom_rgb_ ? make_rgb_(ug_custom_r_, ug_custom_g_, ug_custom_b_) : wheel_(underglow_color_pos_);
+
+  // 1. Colon LEDs (0 and 1)
+  update_colons_(base_ug);
+
+  // 2. Badge Glow LEDs (2..9)
+  for (int i = 2; i < 10; i++) {
+    underglow_rgb_[i][0] = red_(base_ug);
+    underglow_rgb_[i][1] = green_(base_ug);
+    underglow_rgb_[i][2] = blue_(base_ug);
+  }
+
+  // 3. Alarm Indicator LED (10)
+  if (alarm_enabled_ || alarm_ringing_) {
+    underglow_rgb_[10][0] = 255;
+    underglow_rgb_[10][1] = 0;
+    underglow_rgb_[10][2] = 0;
+  } else {
+    underglow_rgb_[10][0] = 0;
+    underglow_rgb_[10][1] = 0;
+    underglow_rgb_[10][2] = 0;
+  }
+
+  // 4. AM/PM Indicator LEDs (11 and 12)
+  update_ampm_indicators_(now_time);
 }
 
 // =============================================================================
