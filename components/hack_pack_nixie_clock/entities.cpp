@@ -19,6 +19,7 @@ void HackPackNixieSwitch::setup() {
     case SwitchType::LINK_BRIGHTNESS: initial_state = parent_->get_link_brightness(); break;
     case SwitchType::ALARM_ENABLED: initial_state = parent_->is_alarm_armed(); break;
     case SwitchType::RECORD_SOUND: initial_state = false; break;
+    case SwitchType::TIMER_RUNNING: initial_state = parent_->is_timer_running(); break;
   }
   publish_state(initial_state);
 }
@@ -38,6 +39,10 @@ void HackPackNixieSwitch::write_state(bool state) {
       else parent_->disarm_alarm();
       break;
     case SwitchType::RECORD_SOUND: parent_->set_record_sound(state); break;
+    case SwitchType::TIMER_RUNNING:
+      if (state) parent_->start_timer();
+      else parent_->stop_timer();
+      break;
   }
   publish_state(state);
 }
@@ -47,8 +52,7 @@ void HackPackNixieSwitch::write_state(bool state) {
 void HackPackNixieButton::press_action() {
   if (!parent_) return;
   switch (type_) {
-    case ButtonType::START_TIMER: parent_->start_timer(); break;
-    case ButtonType::STOP_TIMER: parent_->stop_timer(); break;
+    case ButtonType::RESET_TIMER: parent_->reset_timer(); break;
     case ButtonType::STOP_ALARM: parent_->stop_alarm(); break;
     case ButtonType::TRIGGER_FACE: parent_->trigger_face_animation(); break;
     case ButtonType::TRIGGER_SLOT_MACHINE: parent_->trigger_slot_machine(2500); break;
@@ -103,38 +107,58 @@ void HackPackNixieNumber::control(float value) {
 #ifdef USE_TEXT
 void HackPackNixieText::setup() {
   if (!parent_) return;
-  char buf[16];
-  snprintf(buf, sizeof(buf), "%um", (unsigned int)(parent_->get_timer_duration() / 60));
-  publish_state(buf);
+  publish_state(parent_->get_formatted_timer_duration());
 }
 
 void HackPackNixieText::control(const std::string &value) {
   if (!parent_) return;
   parent_->set_timer_duration_string(value);
-  publish_state(value);
+  publish_state(parent_->get_formatted_timer_duration());
 }
 #endif
 
 #ifdef USE_DATETIME_TIME
 void HackPackNixieTime::setup() {
   if (!parent_) return;
-  this->hour_ = parent_->get_alarm_hour();
-  this->minute_ = parent_->get_alarm_minute();
-  this->second_ = 0;
+  switch (type_) {
+    case TimeType::ALARM_TIME:
+      this->hour_ = parent_->get_alarm_hour();
+      this->minute_ = parent_->get_alarm_minute();
+      this->second_ = 0;
+      break;
+    case TimeType::TIMER_DURATION: {
+      uint32_t dur = parent_->get_timer_duration();
+      this->hour_ = dur / 3600;
+      this->minute_ = (dur % 3600) / 60;
+      this->second_ = dur % 60;
+      break;
+    }
+  }
   this->publish_state();
 }
 
-void HackPackNixieTime::update_time(uint8_t hour, uint8_t minute) {
+void HackPackNixieTime::update_time(uint8_t hour, uint8_t minute, uint8_t second) {
   this->hour_ = hour;
   this->minute_ = minute;
-  this->second_ = 0;
+  this->second_ = second;
   this->publish_state();
 }
 
 void HackPackNixieTime::control(const datetime::TimeCall &call) {
   if (!parent_) return;
-  if (call.get_hour().has_value() && call.get_minute().has_value()) {
-    parent_->set_alarm(*call.get_hour(), *call.get_minute());
+  switch (type_) {
+    case TimeType::ALARM_TIME:
+      if (call.get_hour().has_value() && call.get_minute().has_value()) {
+        parent_->set_alarm(*call.get_hour(), *call.get_minute());
+      }
+      break;
+    case TimeType::TIMER_DURATION: {
+      uint8_t h = call.get_hour().value_or(this->hour_);
+      uint8_t m = call.get_minute().value_or(this->minute_);
+      uint8_t s = call.get_second().value_or(this->second_);
+      parent_->set_timer_duration((uint32_t)h * 3600 + (uint32_t)m * 60 + s);
+      break;
+    }
   }
 }
 #endif

@@ -106,7 +106,7 @@ void HackPackNixieClock::loop() {
   // 7. Repeating Alarm / Timer Beeper
   if (alarm_ringing_ || timer_ringing_) {
     uint32_t start_ref = alarm_ringing_ ? alarm_ring_start_ : timer_ring_start_;
-    if ((now_ms - start_ref) % 10000 < 100) {
+    if ((now_ms - start_ref) % 1000 < 100) {
       if (beep_end_ == 0) play_beep(100);
     }
   }
@@ -235,7 +235,7 @@ void HackPackNixieClock::init_hardware_() {
 // =============================================================================
 // Physical Buttons Debouncing & Navigation
 // =============================================================================
-void HackPackNixieClock::handle_button_(ButtonState &btn, const char *name, void (HackPackNixieClock::*on_click)(), void (HackPackNixieClock::*on_long_press)()) {
+void HackPackNixieClock::handle_button_(ButtonState &btn, const char *name, void (HackPackNixieClock::*on_click)(), void (HackPackNixieClock::*on_long_press)(), void (HackPackNixieClock::*on_repeat)()) {
 #if defined(USE_ESP_IDF)
   bool reading = gpio_get_level((gpio_num_t)btn.pin) == 0; // Inverted / Active LOW
 #else
@@ -253,34 +253,51 @@ void HackPackNixieClock::handle_button_(ButtonState &btn, const char *name, void
     if (!btn.is_pressed && (now - btn.press_start >= 50)) {
       btn.is_pressed = true;
       btn.long_press_handled = false;
+      btn.last_repeat_time = 0;
     }
-    if (btn.is_pressed && !btn.long_press_handled && (now - btn.press_start >= 800)) {
-      btn.long_press_handled = true;
-      ESP_LOGD(TAG, "Button long press: %s", name);
-      if (physical_buttons_enabled_ && on_long_press) {
-        (this->*on_long_press)();
+
+    if (btn.is_pressed) {
+      // Long press threshold: 1000ms
+      if (!btn.long_press_handled && (now - btn.press_start >= 1000)) {
+        btn.long_press_handled = true;
+        btn.last_repeat_time = now;
+        ESP_LOGD(TAG, "Button long press: %s", name);
+        if (physical_buttons_enabled_ && on_long_press) {
+          (this->*on_long_press)();
+        }
+      }
+
+      // Auto-repeat: if held > 1000ms and on_repeat is configured, trigger every 100ms
+      if (btn.long_press_handled && on_repeat) {
+        if (now - btn.last_repeat_time >= 100) {
+          btn.last_repeat_time = now;
+          if (physical_buttons_enabled_) {
+            (this->*on_repeat)();
+          }
+        }
       }
     }
   } else {
     if (btn.is_pressed) {
-      if (!btn.long_press_handled && (now - btn.press_start < 800)) {
+      if (!btn.long_press_handled && (now - btn.press_start < 1000)) {
         ESP_LOGD(TAG, "Button click: %s", name);
         if (physical_buttons_enabled_ && on_click) {
           (this->*on_click)();
         }
       }
       btn.is_pressed = false;
+      btn.last_repeat_time = 0;
     }
   }
 }
 
 void HackPackNixieClock::poll_buttons_() {
-  handle_button_(btn_top_, "Top", &HackPackNixieClock::btn_top_click_, &HackPackNixieClock::btn_top_long_);
-  handle_button_(btn_center_, "Center", &HackPackNixieClock::btn_center_click_, &HackPackNixieClock::btn_center_long_);
-  handle_button_(btn_up_, "Up", &HackPackNixieClock::btn_up_click_, nullptr);
-  handle_button_(btn_down_, "Down", &HackPackNixieClock::btn_down_click_, nullptr);
-  handle_button_(btn_left_, "Left", &HackPackNixieClock::btn_left_click_, nullptr);
-  handle_button_(btn_right_, "Right", &HackPackNixieClock::btn_right_click_, nullptr);
+  handle_button_(btn_top_, "Top", &HackPackNixieClock::btn_top_click_, &HackPackNixieClock::btn_top_long_, nullptr);
+  handle_button_(btn_center_, "Center", &HackPackNixieClock::btn_center_click_, &HackPackNixieClock::btn_center_long_, nullptr);
+  handle_button_(btn_up_, "Up", &HackPackNixieClock::btn_up_click_, nullptr, &HackPackNixieClock::btn_up_click_);
+  handle_button_(btn_down_, "Down", &HackPackNixieClock::btn_down_click_, nullptr, &HackPackNixieClock::btn_down_click_);
+  handle_button_(btn_left_, "Left", &HackPackNixieClock::btn_left_click_, nullptr, &HackPackNixieClock::btn_left_click_);
+  handle_button_(btn_right_, "Right", &HackPackNixieClock::btn_right_click_, nullptr, &HackPackNixieClock::btn_right_click_);
 }
 
 void HackPackNixieClock::btn_top_click_() {
@@ -292,21 +309,31 @@ void HackPackNixieClock::btn_top_click_() {
     stop_timer();
     return;
   }
-  if (timer_running_) {
-    stop_timer();
-    return;
-  }
   switch (display_mode_) {
     case MODE_TIMER:
-      start_timer();
+      toggle_timer();
       break;
+    case MODE_ALARM:
+      alarm_enabled_ = !alarm_enabled_;
+      ESP_LOGI(TAG, "Alarm %s via top button", alarm_enabled_ ? "armed" : "disarmed");
+      play_beep(100);
+#ifdef USE_SWITCH
+      if (sw_alarm_enabled_ != nullptr) sw_alarm_enabled_->publish_state(alarm_enabled_);
+#endif
+      schedule_save_preferences_();
+      break;
+    case MODE_TIME:
     default:
       break;
   }
 }
 
 void HackPackNixieClock::btn_top_long_() {
-  play_beep(150);
+  if (display_mode_ == MODE_TIMER) {
+    reset_timer();
+  } else {
+    play_beep(150);
+  }
 }
 
 void HackPackNixieClock::btn_center_click_() {
@@ -333,22 +360,68 @@ void HackPackNixieClock::btn_center_long_() {
 }
 
 void HackPackNixieClock::btn_up_click_() {
-  set_panel_color_pos((panel_color_pos_ + 16) % 256);
+  switch (display_mode_) {
+    case MODE_TIMER:
+      adjust_timer_duration(60);
+      break;
+    case MODE_ALARM:
+      adjust_alarm_time(1, 0);
+      break;
+    case MODE_TIME:
+    default:
+      set_panel_color_pos((panel_color_pos_ + 16) % 256);
+      break;
+  }
 }
 
 void HackPackNixieClock::btn_down_click_() {
-  set_panel_color_pos((panel_color_pos_ + 240) % 256);
+  switch (display_mode_) {
+    case MODE_TIMER:
+      adjust_timer_duration(-60);
+      break;
+    case MODE_ALARM:
+      adjust_alarm_time(-1, 0);
+      break;
+    case MODE_TIME:
+    default:
+      set_panel_color_pos((panel_color_pos_ + 240) % 256);
+      break;
+  }
 }
 
 void HackPackNixieClock::btn_left_click_() {
-  int m = (int)color_mode_ - 1;
-  if (m < 0) m = 6;
-  set_color_mode((ColorMode)m);
+  switch (display_mode_) {
+    case MODE_TIMER:
+      adjust_timer_duration(-1);
+      break;
+    case MODE_ALARM:
+      adjust_alarm_time(0, -1);
+      break;
+    case MODE_TIME:
+    default: {
+      int m = (int)color_mode_ - 1;
+      if (m < 0) m = 6;
+      set_color_mode((ColorMode)m);
+      break;
+    }
+  }
 }
 
 void HackPackNixieClock::btn_right_click_() {
-  int m = ((int)color_mode_ + 1) % 7;
-  set_color_mode((ColorMode)m);
+  switch (display_mode_) {
+    case MODE_TIMER:
+      adjust_timer_duration(1);
+      break;
+    case MODE_ALARM:
+      adjust_alarm_time(0, 1);
+      break;
+    case MODE_TIME:
+    default: {
+      int m = ((int)color_mode_ + 1) % 7;
+      set_color_mode((ColorMode)m);
+      break;
+    }
+  }
 }
 
 // =============================================================================
@@ -553,6 +626,39 @@ void HackPackNixieClock::set_alarm(uint8_t hour, uint8_t minute) {
   schedule_save_preferences_();
 }
 
+void HackPackNixieClock::adjust_alarm_time(int8_t delta_hours, int8_t delta_minutes) {
+  int h = (int)alarm_hour_ + delta_hours;
+  while (h < 0) h += 24;
+  alarm_hour_ = (uint8_t)(h % 24);
+
+  int m = (int)alarm_minute_ + delta_minutes;
+  while (m < 0) m += 60;
+  alarm_minute_ = (uint8_t)(m % 60);
+
+#ifdef USE_DATETIME_TIME
+  if (tm_alarm_time_ != nullptr) {
+    static_cast<HackPackNixieTime *>(tm_alarm_time_)->update_time(alarm_hour_, alarm_minute_);
+  }
+#endif
+
+  if (display_mode_ == MODE_ALARM) {
+    uint8_t disp_hr = alarm_hour_;
+    if (!hr24_mode_) {
+      disp_hr = disp_hr % 12;
+      if (disp_hr == 0) disp_hr = 12;
+    }
+    char c0 = (disp_hr / 10) ? ('0' + (disp_hr / 10)) : (show_lead_zero_ ? '0' : ' ');
+    char c1 = '0' + (disp_hr % 10);
+    char c2 = '0' + (alarm_minute_ / 10);
+    char c3 = '0' + (alarm_minute_ % 10);
+    char c4 = ' ';
+    char c5 = ' ';
+    set_display_chars_(c0, c1, c2, c3, c4, c5);
+  }
+
+  schedule_save_preferences_();
+}
+
 void HackPackNixieClock::arm_alarm() {
   alarm_enabled_ = true;
   ESP_LOGI(TAG, "Alarm armed for %02u:%02u", alarm_hour_, alarm_minute_);
@@ -583,9 +689,35 @@ void HackPackNixieClock::stop_alarm() {
 #endif
 }
 
-void HackPackNixieClock::set_timer_duration(uint32_t seconds) {
-  timer_duration_sec_ = (seconds > 0) ? seconds : 300;
-  ESP_LOGI(TAG, "Timer duration set to %u seconds", (unsigned int)timer_duration_sec_);
+std::string HackPackNixieClock::get_formatted_timer_duration() const {
+  uint32_t h = timer_duration_sec_ / 3600;
+  uint32_t m = (timer_duration_sec_ % 3600) / 60;
+  uint32_t s = timer_duration_sec_ % 60;
+  char buf[32];
+  if (h > 0) {
+    if (m > 0 && s > 0) snprintf(buf, sizeof(buf), "%luh %lum %lus", (unsigned long)h, (unsigned long)m, (unsigned long)s);
+    else if (m > 0) snprintf(buf, sizeof(buf), "%luh %lum", (unsigned long)h, (unsigned long)m);
+    else if (s > 0) snprintf(buf, sizeof(buf), "%luh %lus", (unsigned long)h, (unsigned long)s);
+    else snprintf(buf, sizeof(buf), "%luh", (unsigned long)h);
+  } else if (m > 0) {
+    if (s > 0) snprintf(buf, sizeof(buf), "%lum %lus", (unsigned long)m, (unsigned long)s);
+    else snprintf(buf, sizeof(buf), "%lum", (unsigned long)m);
+  } else {
+    snprintf(buf, sizeof(buf), "%lus", (unsigned long)s);
+  }
+  return std::string(buf);
+}
+
+void HackPackNixieClock::adjust_timer_duration(int32_t delta_sec) {
+  if (timer_running_) return;
+
+  int64_t new_dur = (int64_t)timer_duration_sec_ + delta_sec;
+  if (new_dur < 10) new_dur = 10;
+  if (new_dur > 86399) new_dur = 86399;
+
+  timer_duration_sec_ = (uint32_t)new_dur;
+  timer_remaining_sec_ = timer_duration_sec_;
+
 #ifdef USE_NUMBER
   if (num_timer_duration_minutes_ != nullptr) {
     num_timer_duration_minutes_->publish_state((float)(timer_duration_sec_ / 60));
@@ -593,9 +725,76 @@ void HackPackNixieClock::set_timer_duration(uint32_t seconds) {
 #endif
 #ifdef USE_TEXT
   if (txt_timer_duration_ != nullptr) {
+    txt_timer_duration_->publish_state(get_formatted_timer_duration());
+  }
+#endif
+#ifdef USE_DATETIME_TIME
+  if (tm_timer_duration_ != nullptr) {
+    uint8_t th = timer_duration_sec_ / 3600;
+    uint8_t tm = (timer_duration_sec_ % 3600) / 60;
+    uint8_t ts = timer_duration_sec_ % 60;
+    static_cast<HackPackNixieTime *>(tm_timer_duration_)->update_time(th, tm, ts);
+  }
+#endif
+#ifdef USE_TEXT_SENSOR
+  if (text_sensor_timer_remaining_ != nullptr) {
+    uint32_t th = timer_remaining_sec_ / 3600;
+    uint32_t tm = (timer_remaining_sec_ % 3600) / 60;
+    uint32_t ts = timer_remaining_sec_ % 60;
     char buf[16];
-    snprintf(buf, sizeof(buf), "%um", (unsigned int)(timer_duration_sec_ / 60));
-    txt_timer_duration_->publish_state(buf);
+    snprintf(buf, sizeof(buf), "%02lu:%02lu:%02lu", (unsigned long)th, (unsigned long)tm, (unsigned long)ts);
+    text_sensor_timer_remaining_->publish_state(buf);
+  }
+#endif
+
+  if (display_mode_ == MODE_TIMER) {
+    uint32_t th = timer_remaining_sec_ / 3600;
+    uint32_t tm = (timer_remaining_sec_ % 3600) / 60;
+    uint32_t ts = timer_remaining_sec_ % 60;
+    char c0 = (th / 10) ? ('0' + (th / 10)) : (show_lead_zero_ ? '0' : ' ');
+    char c1 = '0' + (th % 10);
+    char c2 = '0' + (tm / 10);
+    char c3 = '0' + (tm % 10);
+    char c4 = '0' + (ts / 10);
+    char c5 = '0' + (ts % 10);
+    set_display_chars_(c0, c1, c2, c3, c4, c5);
+  }
+
+  schedule_save_preferences_();
+}
+
+void HackPackNixieClock::set_timer_duration(uint32_t seconds) {
+  timer_duration_sec_ = (seconds > 0) ? seconds : 300;
+  if (!timer_running_) {
+    timer_remaining_sec_ = timer_duration_sec_;
+#ifdef USE_TEXT_SENSOR
+    if (text_sensor_timer_remaining_ != nullptr) {
+      uint32_t th = timer_remaining_sec_ / 3600;
+      uint32_t tm = (timer_remaining_sec_ % 3600) / 60;
+      uint32_t ts = timer_remaining_sec_ % 60;
+      char buf[16];
+      snprintf(buf, sizeof(buf), "%02lu:%02lu:%02lu", (unsigned long)th, (unsigned long)tm, (unsigned long)ts);
+      text_sensor_timer_remaining_->publish_state(buf);
+    }
+#endif
+  }
+  ESP_LOGI(TAG, "Timer duration set to %u seconds (%s)", (unsigned int)timer_duration_sec_, get_formatted_timer_duration().c_str());
+#ifdef USE_NUMBER
+  if (num_timer_duration_minutes_ != nullptr) {
+    num_timer_duration_minutes_->publish_state((float)(timer_duration_sec_ / 60));
+  }
+#endif
+#ifdef USE_TEXT
+  if (txt_timer_duration_ != nullptr) {
+    txt_timer_duration_->publish_state(get_formatted_timer_duration());
+  }
+#endif
+#ifdef USE_DATETIME_TIME
+  if (tm_timer_duration_ != nullptr) {
+    uint8_t th = timer_duration_sec_ / 3600;
+    uint8_t tm = (timer_duration_sec_ % 3600) / 60;
+    uint8_t ts = timer_duration_sec_ % 60;
+    static_cast<HackPackNixieTime *>(tm_timer_duration_)->update_time(th, tm, ts);
   }
 #endif
   schedule_save_preferences_();
@@ -659,7 +858,6 @@ uint32_t HackPackNixieClock::parse_duration_string(const std::string &input) {
   }
 
   if (in_num && total == 0) {
-    // Pure numeric value without suffix defaults to minutes
     return current_num * 60;
   }
   if (!valid && total == 0) {
@@ -673,35 +871,109 @@ void HackPackNixieClock::start_timer(uint32_t hours, uint32_t minutes, uint32_t 
 }
 
 void HackPackNixieClock::start_timer(uint32_t duration_sec) {
-  uint32_t dur = (duration_sec > 0) ? duration_sec : timer_duration_sec_;
-  if (dur == 0) dur = 300;
-  timer_duration_sec_ = dur;
-  timer_end_millis_ = millis() + (dur * 1000);
+  if (duration_sec > 0) {
+    timer_duration_sec_ = duration_sec;
+    timer_remaining_sec_ = duration_sec;
+  } else if (timer_remaining_sec_ == 0) {
+    timer_remaining_sec_ = (timer_duration_sec_ > 0) ? timer_duration_sec_ : 300;
+  }
+
+  timer_end_millis_ = millis() + (timer_remaining_sec_ * 1000);
   timer_running_ = true;
   timer_ringing_ = false;
-  timer_remaining_sec_ = dur;
 
-  ESP_LOGI(TAG, "Countdown timer started for %u seconds", (unsigned int)dur);
-  set_display_mode(MODE_TIMER);
+  ESP_LOGI(TAG, "Countdown timer started/resumed (%u seconds remaining)", (unsigned int)timer_remaining_sec_);
 
+#ifdef USE_SWITCH
+  if (sw_timer_running_ != nullptr) sw_timer_running_->publish_state(true);
+#endif
 #ifdef USE_BINARY_SENSOR
-  if (bs_timer_running_ != nullptr) bs_timer_running_->publish_state(true);
   if (bs_timer_ringing_ != nullptr) bs_timer_ringing_->publish_state(false);
 #endif
 }
 
 void HackPackNixieClock::stop_timer() {
+  if (timer_ringing_) {
+    timer_ringing_ = false;
+    ESP_LOGI(TAG, "Timer alarm dismissed; returning to mode %u", (unsigned int)timer_return_mode_);
+    set_display_mode(timer_return_mode_);
+  } else if (timer_running_) {
+    uint32_t now_ms = millis();
+    uint32_t left_ms = (timer_end_millis_ > now_ms) ? (timer_end_millis_ - now_ms) : 0;
+    timer_remaining_sec_ = (left_ms + 999) / 1000;
+    ESP_LOGI(TAG, "Countdown timer paused (%u seconds remaining)", (unsigned int)timer_remaining_sec_);
+  }
   timer_running_ = false;
-  timer_ringing_ = false;
-  timer_remaining_sec_ = 0;
-  ESP_LOGI(TAG, "Countdown timer stopped");
+
+#ifdef USE_SWITCH
+  if (sw_timer_running_ != nullptr) sw_timer_running_->publish_state(false);
+#endif
 #ifdef USE_BINARY_SENSOR
-  if (bs_timer_running_ != nullptr) bs_timer_running_->publish_state(false);
   if (bs_timer_ringing_ != nullptr) bs_timer_ringing_->publish_state(false);
 #endif
 #ifdef USE_TEXT_SENSOR
-  if (text_sensor_timer_remaining_ != nullptr) text_sensor_timer_remaining_->publish_state("00:00:00");
+  if (text_sensor_timer_remaining_ != nullptr) {
+    uint32_t th = timer_remaining_sec_ / 3600;
+    uint32_t tm = (timer_remaining_sec_ % 3600) / 60;
+    uint32_t ts = timer_remaining_sec_ % 60;
+    char buf[16];
+    snprintf(buf, sizeof(buf), "%02lu:%02lu:%02lu", (unsigned long)th, (unsigned long)tm, (unsigned long)ts);
+    text_sensor_timer_remaining_->publish_state(buf);
+  }
 #endif
+}
+
+void HackPackNixieClock::reset_timer() {
+  timer_running_ = false;
+  timer_ringing_ = false;
+  timer_remaining_sec_ = (timer_duration_sec_ > 0) ? timer_duration_sec_ : 300;
+  ESP_LOGI(TAG, "Countdown timer reset to %u seconds", (unsigned int)timer_remaining_sec_);
+  play_beep(150);
+
+#ifdef USE_SWITCH
+  if (sw_timer_running_ != nullptr) sw_timer_running_->publish_state(false);
+#endif
+#ifdef USE_BINARY_SENSOR
+  if (bs_timer_ringing_ != nullptr) bs_timer_ringing_->publish_state(false);
+#endif
+#ifdef USE_TEXT_SENSOR
+  if (text_sensor_timer_remaining_ != nullptr) {
+    uint32_t th = timer_remaining_sec_ / 3600;
+    uint32_t tm = (timer_remaining_sec_ % 3600) / 60;
+    uint32_t ts = timer_remaining_sec_ % 60;
+    char buf[16];
+    snprintf(buf, sizeof(buf), "%02lu:%02lu:%02lu", (unsigned long)th, (unsigned long)tm, (unsigned long)ts);
+    text_sensor_timer_remaining_->publish_state(buf);
+  }
+#endif
+  if (display_mode_ == MODE_TIMER) {
+    uint32_t th = timer_remaining_sec_ / 3600;
+    uint32_t tm = (timer_remaining_sec_ % 3600) / 60;
+    uint32_t ts = timer_remaining_sec_ % 60;
+    char c0 = (th / 10) ? ('0' + (th / 10)) : (show_lead_zero_ ? '0' : ' ');
+    char c1 = '0' + (th % 10);
+    char c2 = '0' + (tm / 10);
+    char c3 = '0' + (tm % 10);
+    char c4 = '0' + (ts / 10);
+    char c5 = '0' + (ts % 10);
+    set_display_chars_(c0, c1, c2, c3, c4, c5);
+  }
+}
+
+void HackPackNixieClock::toggle_timer() {
+  if (alarm_ringing_) {
+    stop_alarm();
+    return;
+  }
+  if (timer_ringing_) {
+    stop_timer();
+    return;
+  }
+  if (timer_running_) {
+    stop_timer();
+  } else {
+    start_timer();
+  }
 }
 
 // =============================================================================
@@ -889,7 +1161,48 @@ void HackPackNixieClock::update_display_state_() {
     return;
   }
 
-  // 4. Render Active Display Mode
+  // 4. Background Countdown Timer Step (independent of display mode)
+  if (timer_running_) {
+    if (now_ms >= timer_end_millis_) {
+      timer_running_ = false;
+      timer_ringing_ = true;
+      timer_ring_start_ = now_ms;
+      timer_remaining_sec_ = 0;
+      timer_return_mode_ = display_mode_;
+      ESP_LOGI(TAG, "Timer reached zero - Alarm ringing! (capturing return mode: %u)", (unsigned int)timer_return_mode_);
+      set_display_mode(MODE_TIMER);
+
+#ifdef USE_SWITCH
+      if (sw_timer_running_ != nullptr) sw_timer_running_->publish_state(false);
+#endif
+#ifdef USE_BINARY_SENSOR
+      if (bs_timer_ringing_ != nullptr) bs_timer_ringing_->publish_state(true);
+#endif
+#ifdef USE_TEXT_SENSOR
+      if (text_sensor_timer_remaining_ != nullptr) text_sensor_timer_remaining_->publish_state("00:00:00");
+#endif
+    } else {
+      uint32_t left_ms = timer_end_millis_ - now_ms;
+      uint32_t prev_sec = timer_remaining_sec_;
+      timer_remaining_sec_ = (left_ms + 999) / 1000;
+      uint32_t tot_sec = left_ms / 1000;
+      uint32_t th = tot_sec / 3600;
+      uint32_t tm = (tot_sec % 3600) / 60;
+      uint32_t ts = tot_sec % 60;
+
+      if (timer_remaining_sec_ != prev_sec) {
+#ifdef USE_TEXT_SENSOR
+        if (text_sensor_timer_remaining_ != nullptr) {
+          char buf[16];
+          snprintf(buf, sizeof(buf), "%02lu:%02lu:%02lu", (unsigned long)th, (unsigned long)tm, (unsigned long)ts);
+          text_sensor_timer_remaining_->publish_state(buf);
+        }
+#endif
+      }
+    }
+  }
+
+  // 5. Render Active Display Mode
   switch (display_mode_) {
     case MODE_TIME: {
       static bool has_synced_time = false;
@@ -923,72 +1236,41 @@ void HackPackNixieClock::update_display_state_() {
     }
 
     case MODE_TIMER: {
-      if (timer_running_) {
-        if (now_ms >= timer_end_millis_) {
-          timer_running_ = false;
-          timer_ringing_ = true;
-          timer_ring_start_ = now_ms;
-          timer_remaining_sec_ = 0;
-          ESP_LOGI(TAG, "Timer reached zero - Alarm ringing!");
-#ifdef USE_BINARY_SENSOR
-          if (bs_timer_running_ != nullptr) bs_timer_running_->publish_state(false);
-          if (bs_timer_ringing_ != nullptr) bs_timer_ringing_->publish_state(true);
-#endif
-#ifdef USE_TEXT_SENSOR
-          if (text_sensor_timer_remaining_ != nullptr) text_sensor_timer_remaining_->publish_state("00:00:00");
-#endif
+      if (timer_ringing_) {
+        if ((now_ms / 500) % 2 == 0) {
           set_display_chars_('0', '0', '0', '0', '0', '0');
         } else {
-          uint32_t left_ms = timer_end_millis_ - now_ms;
-          uint32_t prev_sec = timer_remaining_sec_;
-          timer_remaining_sec_ = (left_ms + 999) / 1000;
-          uint32_t tot_sec = left_ms / 1000;
-          uint32_t th = tot_sec / 3600;
-          uint32_t tm = (tot_sec % 3600) / 60;
-          uint32_t ts = tot_sec % 60;
-
-          if (timer_remaining_sec_ != prev_sec) {
-#ifdef USE_TEXT_SENSOR
-            if (text_sensor_timer_remaining_ != nullptr) {
-              char buf[16];
-              snprintf(buf, sizeof(buf), "%02lu:%02lu:%02lu", (unsigned long)th, (unsigned long)tm, (unsigned long)ts);
-              text_sensor_timer_remaining_->publish_state(buf);
-            }
-#endif
-          }
-
-          set_display_chars_(
-            '0' + ((th / 10) % 10), '0' + (th % 10),
-            '0' + ((tm / 10) % 10), '0' + (tm % 10),
-            '0' + ((ts / 10) % 10), '0' + (ts % 10)
-          );
+          show_string_("      ");
         }
-      } else if (timer_ringing_) {
-        set_display_chars_('0', '0', '0', '0', '0', '0');
       } else {
-        uint32_t th = timer_duration_sec_ / 3600;
-        uint32_t tm = (timer_duration_sec_ % 3600) / 60;
-        uint32_t ts = timer_duration_sec_ % 60;
-        set_display_chars_(
-          '0' + ((th / 10) % 10), '0' + (th % 10),
-          '0' + ((tm / 10) % 10), '0' + (tm % 10),
-          '0' + ((ts / 10) % 10), '0' + (ts % 10)
-        );
+        uint32_t disp_sec = timer_remaining_sec_;
+        uint32_t th = disp_sec / 3600;
+        uint32_t tm = (disp_sec % 3600) / 60;
+        uint32_t ts = disp_sec % 60;
+        char c0 = (th / 10) ? ('0' + (th / 10)) : (show_lead_zero_ ? '0' : ' ');
+        char c1 = '0' + (th % 10);
+        char c2 = '0' + (tm / 10);
+        char c3 = '0' + (tm % 10);
+        char c4 = '0' + (ts / 10);
+        char c5 = '0' + (ts % 10);
+        set_display_chars_(c0, c1, c2, c3, c4, c5);
       }
       break;
     }
 
     case MODE_ALARM: {
-      int h = alarm_hour_;
+      uint8_t disp_hr = alarm_hour_;
       if (!hr24_mode_) {
-        if (h == 0) h = 12;
-        else if (h > 12) h -= 12;
+        disp_hr = disp_hr % 12;
+        if (disp_hr == 0) disp_hr = 12;
       }
-      set_display_chars_(
-        '0' + (h / 10), '0' + (h % 10),
-        '0' + (alarm_minute_ / 10), '0' + (alarm_minute_ % 10),
-        '0', '0'
-      );
+      char c0 = (disp_hr / 10) ? ('0' + (disp_hr / 10)) : (show_lead_zero_ ? '0' : ' ');
+      char c1 = '0' + (disp_hr % 10);
+      char c2 = '0' + (alarm_minute_ / 10);
+      char c3 = '0' + (alarm_minute_ % 10);
+      char c4 = ' ';
+      char c5 = ' ';
+      set_display_chars_(c0, c1, c2, c3, c4, c5);
       break;
     }
 
@@ -1312,6 +1594,7 @@ void HackPackNixieClock::register_switch(SwitchType type, switch_::Switch *sw) {
     case SwitchType::LINK_BRIGHTNESS: sw_link_brightness_ = sw; break;
     case SwitchType::ALARM_ENABLED: sw_alarm_enabled_ = sw; break;
     case SwitchType::RECORD_SOUND: sw_record_sound_ = sw; break;
+    case SwitchType::TIMER_RUNNING: sw_timer_running_ = sw; break;
   }
 }
 #endif
@@ -1349,6 +1632,9 @@ void HackPackNixieClock::register_time(TimeType type, datetime::TimeEntity *tm) 
   switch (type) {
     case TimeType::ALARM_TIME:
       tm_alarm_time_ = tm;
+      break;
+    case TimeType::TIMER_DURATION:
+      tm_timer_duration_ = tm;
       break;
   }
 }

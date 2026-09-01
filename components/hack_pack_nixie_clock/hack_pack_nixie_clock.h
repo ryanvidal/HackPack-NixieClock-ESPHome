@@ -87,6 +87,10 @@ class HackPackNixieClock : public Component {
   void start_timer(uint32_t hours, uint32_t minutes, uint32_t seconds);
   void start_timer(uint32_t duration_sec = 0);
   void stop_timer();
+  void reset_timer();
+  void toggle_timer();
+  void adjust_timer_duration(int32_t delta_sec);
+  void adjust_alarm_time(int8_t delta_hours, int8_t delta_minutes);
 
   // Sequences, Messages & Audio
   void play_beep(uint32_t duration_ms = 150);
@@ -127,6 +131,7 @@ class HackPackNixieClock : public Component {
   bool is_alarm_ringing() const { return alarm_ringing_; }
 
   uint32_t get_timer_duration() const { return timer_duration_sec_; }
+  std::string get_formatted_timer_duration() const;
   bool is_timer_running() const { return timer_running_; }
   bool is_timer_ringing() const { return timer_ringing_; }
   uint32_t get_timer_remaining_sec() const { return timer_remaining_sec_; }
@@ -164,10 +169,6 @@ class HackPackNixieClock : public Component {
   void set_alarm_ringing_binary_sensor(binary_sensor::BinarySensor *s) {
     bs_alarm_ringing_ = s;
     if (s != nullptr) s->publish_state(alarm_ringing_);
-  }
-  void set_timer_running_binary_sensor(binary_sensor::BinarySensor *s) {
-    bs_timer_running_ = s;
-    if (s != nullptr) s->publish_state(timer_running_);
   }
   void set_timer_ringing_binary_sensor(binary_sensor::BinarySensor *s) {
     bs_timer_ringing_ = s;
@@ -215,6 +216,7 @@ class HackPackNixieClock : public Component {
   // State Variables
   DisplayMode display_mode_{MODE_TIME};
   DisplayMode return_mode_{MODE_TIME};
+  DisplayMode timer_return_mode_{MODE_TIME};
   ColorMode color_mode_{COLOR_RAINBOW};
   ColonMode colon_mode_{COLON_AUTO_BLEND};
 
@@ -309,6 +311,7 @@ class HackPackNixieClock : public Component {
   switch_::Switch *sw_link_brightness_{nullptr};
   switch_::Switch *sw_alarm_enabled_{nullptr};
   switch_::Switch *sw_record_sound_{nullptr};
+  switch_::Switch *sw_timer_running_{nullptr};
 #endif
 #ifdef USE_SELECT
   select::Select *sel_colon_color_mode_{nullptr};
@@ -321,20 +324,20 @@ class HackPackNixieClock : public Component {
 #endif
 #ifdef USE_DATETIME_TIME
   datetime::TimeEntity *tm_alarm_time_{nullptr};
+  datetime::TimeEntity *tm_timer_duration_{nullptr};
 #endif
 #ifdef USE_TEXT_SENSOR
   text_sensor::TextSensor *text_sensor_timer_remaining_{nullptr};
 #endif
 #ifdef USE_BINARY_SENSOR
   binary_sensor::BinarySensor *bs_alarm_ringing_{nullptr};
-  binary_sensor::BinarySensor *bs_timer_running_{nullptr};
   binary_sensor::BinarySensor *bs_timer_ringing_{nullptr};
 #endif
 
   // Internal Logic & Render Helpers
   void init_hardware_();
   void poll_buttons_();
-  void handle_button_(ButtonState &btn, const char *name, void (HackPackNixieClock::*on_click)(), void (HackPackNixieClock::*on_long_press)());
+  void handle_button_(ButtonState &btn, const char *name, void (HackPackNixieClock::*on_click)(), void (HackPackNixieClock::*on_long_press)() = nullptr, void (HackPackNixieClock::*on_repeat)() = nullptr);
 
   void btn_top_click_();
   void btn_top_long_();

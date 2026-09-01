@@ -173,20 +173,32 @@ data:
 ```
 
 ### 2. Start Countdown Timer
-Starts the countdown timer with an optional duration:
+Starts or resumes the countdown timer with an optional natural language duration string:
 ```yaml
 action: esphome.hack_pack_nixie_clock_start_timer
 data:
-  duration_seconds: 600
+  duration: "10m"
 ```
 
-### 3. Trigger Face Animation
+### 3. Show Time (Clock View)
+Switches the Nixie tube display mode to standard real-time clock view:
+```yaml
+action: esphome.hack_pack_nixie_clock_show_time
+```
+
+### 4. Show Timer (Timer View)
+Switches the Nixie tube display mode to the countdown timer view:
+```yaml
+action: esphome.hack_pack_nixie_clock_show_timer
+```
+
+### 5. Trigger Face Animation
 Runs the character face sequence (`O __O`, `O<>O`, `-<>-`, `^<>^`):
 ```yaml
 action: esphome.hack_pack_nixie_clock_trigger_face_animation
 ```
 
-### 4. Cathode Cleaning / Slot Machine
+### 6. Cathode Cleaning / Slot Machine
 Cycles all digits rapidly across all 6 panels to prevent cathode poisoning:
 ```yaml
 action: esphome.hack_pack_nixie_clock_trigger_slot_machine
@@ -194,7 +206,7 @@ data:
   duration_ms: 3000
 ```
 
-### 5. Play Audio Recording
+### 7. Play Audio Recording
 Pulses the voice module playback pin:
 ```yaml
 action: esphome.hack_pack_nixie_clock_play_sound
@@ -228,18 +240,6 @@ cards:
         name: Link Brightness
 
   # --------------------------------------------------------------------------
-  # Section: Clock & Display
-  # --------------------------------------------------------------------------
-  - type: entities
-    title: 🕒 Clock & Display
-    show_header_toggle: false
-    entities:
-      - entity: select.hack_pack_nixie_clock_display_mode
-        name: Display Mode
-      - entity: sensor.hack_pack_nixie_clock_active_display_characters
-        name: Active Tubes Text
-
-  # --------------------------------------------------------------------------
   # Section: Alarm & Countdown Timer
   # --------------------------------------------------------------------------
   - type: entities
@@ -250,29 +250,14 @@ cards:
         name: Alarm Time
       - entity: switch.hack_pack_nixie_clock_alarm_enabled
         name: Alarm Armed
-      - entity: datetime.hack_pack_nixie_clock_timer_duration
+      - entity: text.hack_pack_nixie_clock_timer_duration
         name: Timer Duration
+      - entity: switch.hack_pack_nixie_clock_timer_running
+        name: Timer Running
       - entity: sensor.hack_pack_nixie_clock_timer_remaining
         name: Timer Countdown
-
-  - type: horizontal-stack
-    cards:
-      - type: button
-        name: Start Timer
-        icon: mdi:timer-play
-        tap_action:
-          action: call-service
-          service: button.press
-          target:
-            entity_id: button.hack_pack_nixie_clock_start_countdown_timer
-      - type: button
-        name: Stop Timer
-        icon: mdi:timer-stop
-        tap_action:
-          action: call-service
-          service: button.press
-          target:
-            entity_id: button.hack_pack_nixie_clock_stop_countdown_timer
+      - entity: button.hack_pack_nixie_clock_reset_countdown_timer
+        name: Reset Timer
 
   # --------------------------------------------------------------------------
   # Section: Voice Module & Fun Effects
