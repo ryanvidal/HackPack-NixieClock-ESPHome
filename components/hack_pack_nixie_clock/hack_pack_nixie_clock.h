@@ -4,7 +4,6 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/preferences.h"
 #include "esphome/components/time/real_time_clock.h"
-#include "esphome/components/sensor/sensor.h"
 #include "esphome/components/text_sensor/text_sensor.h"
 #include "esphome/components/binary_sensor/binary_sensor.h"
 
@@ -154,12 +153,6 @@ class HackPackNixieClock : public Component {
 #endif
 #ifdef USE_DATETIME_TIME
   void register_time(TimeType type, datetime::TimeEntity *tm);
-#endif
-#ifdef USE_SENSOR
-  void set_timer_remaining_sensor(sensor::Sensor *s) {
-    sensor_timer_remaining_sec_ = s;
-    if (s != nullptr) s->publish_state(timer_remaining_sec_);
-  }
 #endif
 #ifdef USE_TEXT_SENSOR
   void set_timer_remaining_text_sensor(text_sensor::TextSensor *s) {
@@ -328,9 +321,6 @@ class HackPackNixieClock : public Component {
 #endif
 #ifdef USE_DATETIME_TIME
   datetime::TimeEntity *tm_alarm_time_{nullptr};
-#endif
-#ifdef USE_SENSOR
-  sensor::Sensor *sensor_timer_remaining_sec_{nullptr};
 #endif
 #ifdef USE_TEXT_SENSOR
   text_sensor::TextSensor *text_sensor_timer_remaining_{nullptr};

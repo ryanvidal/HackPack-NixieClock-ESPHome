@@ -176,12 +176,6 @@ button:
       name: "Play Audio Recording"
       device_id: dev_audio
 
-sensor:
-  - platform: hack_pack_nixie_clock
-    timer_remaining_seconds:
-      name: "Timer Remaining Seconds"
-      device_id: dev_timer
-
 text_sensor:
   - platform: hack_pack_nixie_clock
     timer_remaining:
