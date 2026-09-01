@@ -206,18 +206,6 @@ void HackPackNixieClock::load_preferences_() {
   NixieClockStorage storage;
   if (pref_.load(&storage)) {
     ESP_LOGI(TAG, "Restored Nixie Clock settings from flash memory.");
-    panel_brightness_ = storage.panel_brightness;
-    underglow_brightness_ = storage.underglow_brightness;
-    panel_color_pos_ = storage.panel_color_pos;
-    underglow_color_pos_ = storage.underglow_color_pos;
-    use_panel_custom_rgb_ = storage.use_panel_custom_rgb;
-    custom_r_ = storage.custom_r;
-    custom_g_ = storage.custom_g;
-    custom_b_ = storage.custom_b;
-    use_ug_custom_rgb_ = storage.use_ug_custom_rgb;
-    ug_custom_r_ = storage.ug_custom_r;
-    ug_custom_g_ = storage.ug_custom_g;
-    ug_custom_b_ = storage.ug_custom_b;
     hr24_mode_ = storage.hr24_mode;
     show_lead_zero_ = storage.show_lead_zero;
     colon_blinking_ = storage.colon_blinking;
@@ -228,7 +216,6 @@ void HackPackNixieClock::load_preferences_() {
     alarm_enabled_ = storage.alarm_enabled;
     alarm_hour_ = storage.alarm_hour;
     alarm_minute_ = storage.alarm_minute;
-    color_mode_ = (ColorMode)(storage.color_mode % 7);
     colon_mode_ = (ColonMode)(storage.colon_mode % 3);
     timer_duration_sec_ = (storage.timer_duration_sec > 0) ? storage.timer_duration_sec : 300;
   } else {
@@ -242,18 +229,6 @@ void HackPackNixieClock::schedule_save_preferences_() {
 
 void HackPackNixieClock::save_preferences_now_() {
   NixieClockStorage storage;
-  storage.panel_brightness = panel_brightness_;
-  storage.underglow_brightness = underglow_brightness_;
-  storage.panel_color_pos = panel_color_pos_;
-  storage.underglow_color_pos = underglow_color_pos_;
-  storage.use_panel_custom_rgb = use_panel_custom_rgb_;
-  storage.custom_r = custom_r_;
-  storage.custom_g = custom_g_;
-  storage.custom_b = custom_b_;
-  storage.use_ug_custom_rgb = use_ug_custom_rgb_;
-  storage.ug_custom_r = ug_custom_r_;
-  storage.ug_custom_g = ug_custom_g_;
-  storage.ug_custom_b = ug_custom_b_;
   storage.hr24_mode = hr24_mode_;
   storage.show_lead_zero = show_lead_zero_;
   storage.colon_blinking = colon_blinking_;
@@ -264,7 +239,6 @@ void HackPackNixieClock::save_preferences_now_() {
   storage.alarm_enabled = alarm_enabled_;
   storage.alarm_hour = alarm_hour_;
   storage.alarm_minute = alarm_minute_;
-  storage.color_mode = (uint8_t)color_mode_;
   storage.colon_mode = (uint8_t)colon_mode_;
   storage.timer_duration_sec = timer_duration_sec_;
   pref_.save(&storage);
@@ -525,10 +499,58 @@ void HackPackNixieClock::set_physical_buttons(bool enable) {
   schedule_save_preferences_();
 }
 
+void HackPackNixieLightListener::on_light_remote_values_update() {
+  if (!parent_ || parent_->is_syncing_light()) return;
+  if (!parent_->get_link_brightness()) return;
+
+  light::LightState *source = (type_ == LightType::PANEL) ? parent_->get_panel_light() : parent_->get_underglow_light();
+  light::LightState *target = (type_ == LightType::PANEL) ? parent_->get_underglow_light() : parent_->get_panel_light();
+
+  if (source == nullptr || target == nullptr) return;
+
+  bool src_on = source->remote_values.is_on();
+  float src_bri = source->remote_values.get_brightness();
+
+  // Scale underglow to 80% of panel brightness to compensate for the panel's darkening film
+  float target_bri = (type_ == LightType::PANEL) ? (src_bri * 0.80f) : std::min(1.0f, src_bri / 0.80f);
+
+  bool tgt_on = target->remote_values.is_on();
+  float tgt_bri = target->remote_values.get_brightness();
+
+  if (tgt_on == src_on && std::abs(tgt_bri - target_bri) < 0.005f) return;
+
+  parent_->set_syncing_light(true);
+  auto call = target->make_call();
+  call.set_state(src_on);
+  if (src_on) {
+    call.set_brightness(target_bri);
+  }
+  call.set_transition_length(0);
+  call.perform();
+  parent_->set_syncing_light(false);
+}
+
 void HackPackNixieClock::set_link_brightness(bool enable) {
   link_brightness_ = enable;
-  if (link_brightness_) {
-    underglow_brightness_ = panel_brightness_;
+  if (link_brightness_ && panel_light_ != nullptr && underglow_light_ != nullptr) {
+    bool src_on = panel_light_->remote_values.is_on();
+    float src_bri = panel_light_->remote_values.get_brightness();
+    float target_bri = src_bri * 0.80f;
+
+    bool tgt_on = underglow_light_->remote_values.is_on();
+    float tgt_bri = underglow_light_->remote_values.get_brightness();
+
+    if (tgt_on != src_on || std::abs(tgt_bri - target_bri) >= 0.005f) {
+      syncing_light_ = true;
+      auto call = underglow_light_->make_call();
+      call.set_state(src_on);
+      if (src_on) {
+        call.set_brightness(target_bri);
+      }
+      call.set_transition_length(0);
+      call.perform();
+      syncing_light_ = false;
+    }
   }
 #ifdef USE_SWITCH
   if (sw_link_brightness_ != nullptr) sw_link_brightness_->publish_state(enable);
@@ -538,12 +560,15 @@ void HackPackNixieClock::set_link_brightness(bool enable) {
 
 void HackPackNixieClock::set_panel_brightness(uint8_t brightness) {
   panel_brightness_ = brightness;
-  schedule_save_preferences_();
 }
 
 void HackPackNixieClock::set_underglow_brightness(uint8_t brightness) {
   underglow_brightness_ = brightness;
-  schedule_save_preferences_();
+}
+
+void HackPackNixieClock::set_ready_for_ota() {
+  panel_brightness_ = 0;
+  underglow_brightness_ = 64; // ~25% brightness for low power
 }
 
 void HackPackNixieClock::set_panel_color_pos(uint8_t pos) {
@@ -1145,8 +1170,33 @@ static void IRAM_ATTR ws2812_transmit(uint8_t pin, const uint8_t *data, size_t l
 }
 #endif
 
+// 256-entry Perceptual Gamma 2.4 curve table with non-zero floor for x > 0
+static const uint8_t GAMMA8_TABLE[256] = {
+    0,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,
+    1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   2,
+    2,   2,   2,   2,   2,   2,   3,   3,   3,   3,   3,   4,   4,   4,   4,   4,
+    5,   5,   5,   5,   6,   6,   6,   6,   7,   7,   7,   8,   8,   8,   9,   9,
+    9,  10,  10,  10,  11,  11,  11,  12,  12,  13,  13,  14,  14,  14,  15,  15,
+   16,  16,  17,  17,  18,  18,  19,  19,  20,  20,  21,  22,  22,  23,  23,  24,
+   24,  25,  26,  26,  27,  28,  28,  29,  30,  30,  31,  32,  32,  33,  34,  35,
+   35,  36,  37,  38,  39,  39,  40,  41,  42,  43,  43,  44,  45,  46,  47,  48,
+   49,  50,  51,  52,  53,  53,  54,  55,  56,  57,  58,  59,  60,  62,  63,  64,
+   65,  66,  67,  68,  69,  70,  71,  73,  74,  75,  76,  77,  78,  80,  81,  82,
+   83,  85,  86,  87,  88,  90,  91,  92,  94,  95,  96,  98,  99, 100, 102, 103,
+  105, 106, 108, 109, 111, 112, 114, 115, 117, 118, 120, 121, 123, 124, 126, 127,
+  129, 131, 132, 134, 136, 137, 139, 141, 142, 144, 146, 148, 149, 151, 153, 155,
+  156, 158, 160, 162, 164, 166, 167, 169, 171, 173, 175, 177, 179, 181, 183, 185,
+  187, 189, 191, 193, 195, 197, 199, 201, 203, 205, 207, 210, 212, 214, 216, 218,
+  220, 223, 225, 227, 229, 232, 234, 236, 239, 241, 243, 246, 248, 250, 253, 255
+};
+
 void HackPackNixieClock::render_hardware_leds_() {
 #if defined(USE_ESP_IDF)
+  uint8_t pb = GAMMA8_TABLE[panel_brightness_];
+  // When linked, scale underglow to 80% (204/255) of panel brightness to match perceived lumens behind the panel film
+  uint8_t effective_ug_bri = link_brightness_ ? (uint8_t)((uint16_t)panel_brightness_ * 204 / 255) : underglow_brightness_;
+  uint8_t ub = GAMMA8_TABLE[effective_ug_bri];
+
   // Convert 42 Panel LEDs (GRB) to byte buffer
   uint8_t panel_bytes[42 * 3];
   int idx = 0;
@@ -1154,9 +1204,9 @@ void HackPackNixieClock::render_hardware_leds_() {
     for (int s = 0; s < 7; s++) {
       uint8_t r = 0, g = 0, b = 0;
       if (panel_segments_[p][s] && display_mode_ != MODE_OFF) {
-        r = (uint8_t)((uint16_t)panel_rgb_[p][s][0] * panel_brightness_ / 255);
-        g = (uint8_t)((uint16_t)panel_rgb_[p][s][1] * panel_brightness_ / 255);
-        b = (uint8_t)((uint16_t)panel_rgb_[p][s][2] * panel_brightness_ / 255);
+        r = (uint8_t)((uint16_t)panel_rgb_[p][s][0] * pb / 255);
+        g = (uint8_t)((uint16_t)panel_rgb_[p][s][1] * pb / 255);
+        b = (uint8_t)((uint16_t)panel_rgb_[p][s][2] * pb / 255);
       }
       panel_bytes[idx++] = g; // GRB order
       panel_bytes[idx++] = r;
@@ -1167,12 +1217,11 @@ void HackPackNixieClock::render_hardware_leds_() {
 
   // Convert 13 Underglow LEDs (GRB) to byte buffer
   uint8_t ug_bytes[13 * 3];
-  uint8_t effective_ug_bri = link_brightness_ ? panel_brightness_ : underglow_brightness_;
   idx = 0;
   for (int i = 0; i < 13; i++) {
-    uint8_t r = (uint8_t)((uint16_t)underglow_rgb_[i][0] * effective_ug_bri / 255);
-    uint8_t g = (uint8_t)((uint16_t)underglow_rgb_[i][1] * effective_ug_bri / 255);
-    uint8_t b = (uint8_t)((uint16_t)underglow_rgb_[i][2] * effective_ug_bri / 255);
+    uint8_t r = (uint8_t)((uint16_t)underglow_rgb_[i][0] * ub / 255);
+    uint8_t g = (uint8_t)((uint16_t)underglow_rgb_[i][1] * ub / 255);
+    uint8_t b = (uint8_t)((uint16_t)underglow_rgb_[i][2] * ub / 255);
     ug_bytes[idx++] = g; // GRB order
     ug_bytes[idx++] = r;
     ug_bytes[idx++] = b;
@@ -1507,21 +1556,17 @@ void HackPackNixieLightOutput::write_state(light::LightState *state) {
 
   if (type_ == LightType::PANEL) {
     if (is_on) {
-      parent_->set_panel_brightness(bri);
       parent_->set_panel_rgb(r, g, b);
       if (parent_->get_display_mode() == MODE_OFF) {
         parent_->set_display_mode(MODE_TIME);
       }
-    } else {
-      parent_->set_panel_brightness(0);
     }
+    parent_->set_panel_brightness(bri);
   } else if (type_ == LightType::UNDERGLOW) {
     if (is_on) {
-      parent_->set_underglow_brightness(bri);
       parent_->set_underglow_rgb(r, g, b);
-    } else {
-      parent_->set_underglow_brightness(0);
     }
+    parent_->set_underglow_brightness(bri);
   }
 }
 
@@ -1576,6 +1621,16 @@ void HackPackNixieClock::register_time(TimeType type, datetime::TimeEntity *tm) 
   }
 }
 #endif
+
+void HackPackNixieClock::register_light(LightType type, light::LightState *st) {
+  if (type == LightType::PANEL) {
+    panel_light_ = st;
+    if (st != nullptr) st->add_remote_values_listener(&panel_listener_);
+  } else if (type == LightType::UNDERGLOW) {
+    underglow_light_ = st;
+    if (st != nullptr) st->add_remote_values_listener(&underglow_listener_);
+  }
+}
 
 // =============================================================================
 // Platform Entities Implementation
