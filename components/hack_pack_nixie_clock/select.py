@@ -15,18 +15,7 @@ HackPackNixieSelect = hack_pack_nixie_clock_ns.class_(
 )
 SelectType = hack_pack_nixie_clock_ns.enum("SelectType", is_class=True)
 
-CONF_DISPLAY_MODE = "display_mode"
 CONF_COLON_COLOR_MODE = "colon_color_mode"
-
-DISPLAY_MODE_OPTIONS = [
-    "Time",
-    "Timer",
-    "Alarm View",
-    "Slot Machine",
-    "Faces",
-    "Custom Text",
-    "Off",
-]
 
 COLON_COLOR_MODE_OPTIONS = [
     "Auto Blend",
@@ -35,7 +24,6 @@ COLON_COLOR_MODE_OPTIONS = [
 ]
 
 SELECTS = {
-    CONF_DISPLAY_MODE: (SelectType.DISPLAY_MODE, "Display Mode", "mdi:monitor", DISPLAY_MODE_OPTIONS, None),
     CONF_COLON_COLOR_MODE: (SelectType.COLON_COLOR_MODE, "Colon Color Mode", "mdi:circle-half-full", COLON_COLOR_MODE_OPTIONS, ENTITY_CATEGORY_CONFIG),
 }
 

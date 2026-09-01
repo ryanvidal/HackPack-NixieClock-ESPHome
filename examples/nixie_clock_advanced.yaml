@@ -197,9 +197,6 @@ switch:
 
 select:
   - platform: hack_pack_nixie_clock
-    display_mode:
-      name: "Display Mode"
-      device_id: dev_clock
     colon_color_mode:
       name: "Colon Color Mode"
       device_id: dev_clock

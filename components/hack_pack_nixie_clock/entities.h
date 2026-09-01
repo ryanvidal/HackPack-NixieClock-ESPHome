@@ -64,7 +64,7 @@ class HackPackNixieSelect : public select::Select, public Component {
 
  protected:
   HackPackNixieClock *parent_{nullptr};
-  SelectType type_{SelectType::DISPLAY_MODE};
+  SelectType type_{SelectType::COLON_COLOR_MODE};
 };
 #endif
 

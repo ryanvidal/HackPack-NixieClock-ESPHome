@@ -358,21 +358,6 @@ void HackPackNixieClock::set_display_mode(DisplayMode mode) {
   if (display_mode_ == mode) return;
   ESP_LOGI(TAG, "Display mode changed: %u -> %u", (unsigned int)display_mode_, (unsigned int)mode);
   display_mode_ = mode;
-#ifdef USE_SELECT
-  if (sel_display_mode_ != nullptr) {
-    const char *mode_str = "Time";
-    switch (display_mode_) {
-      case MODE_TIME: mode_str = "Time"; break;
-      case MODE_TIMER: mode_str = "Timer"; break;
-      case MODE_ALARM: mode_str = "Alarm View"; break;
-      case MODE_SLOT_MACHINE: mode_str = "Slot Machine"; break;
-      case MODE_FACE: mode_str = "Faces"; break;
-      case MODE_CUSTOM_TEXT: mode_str = "Custom Text"; break;
-      case MODE_OFF: mode_str = "Off"; break;
-    }
-    sel_display_mode_->publish_state(mode_str);
-  }
-#endif
 }
 
 void HackPackNixieClock::set_color_mode(ColorMode mode) {
@@ -1344,7 +1329,6 @@ void HackPackNixieClock::register_switch(SwitchType type, switch_::Switch *sw) {
 #ifdef USE_SELECT
 void HackPackNixieClock::register_select(SelectType type, select::Select *sel) {
   switch (type) {
-    case SelectType::DISPLAY_MODE: sel_display_mode_ = sel; break;
     case SelectType::COLON_COLOR_MODE: sel_colon_color_mode_ = sel; break;
   }
 }

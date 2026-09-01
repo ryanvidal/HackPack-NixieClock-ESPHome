@@ -318,7 +318,6 @@ class HackPackNixieClock : public Component {
   switch_::Switch *sw_record_sound_{nullptr};
 #endif
 #ifdef USE_SELECT
-  select::Select *sel_display_mode_{nullptr};
   select::Select *sel_colon_color_mode_{nullptr};
 #endif
 #ifdef USE_NUMBER
