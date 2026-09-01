@@ -3,9 +3,40 @@
 #include "esphome/core/component.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/preferences.h"
+#include "esphome/core/automation.h"
 #include "esphome/components/time/real_time_clock.h"
 #include "esphome/components/light/light_output.h"
 #include "esphome/components/light/light_state.h"
+#include "esphome/components/light/light_effect.h"
+
+#ifdef USE_SWITCH
+#include "esphome/components/switch/switch.h"
+#endif
+#ifdef USE_BUTTON
+#include "esphome/components/button/button.h"
+#endif
+#ifdef USE_SELECT
+#include "esphome/components/select/select.h"
+#endif
+#ifdef USE_NUMBER
+#include "esphome/components/number/number.h"
+#endif
+#ifdef USE_TEXT
+#include "esphome/components/text/text.h"
+#endif
+#ifdef USE_DATETIME_TIME
+#include "esphome/components/datetime/time_entity.h"
+#endif
+#ifdef USE_SENSOR
+#include "esphome/components/sensor/sensor.h"
+#endif
+#ifdef USE_TEXT_SENSOR
+#include "esphome/components/text_sensor/text_sensor.h"
+#endif
+#ifdef USE_BINARY_SENSOR
+#include "esphome/components/binary_sensor/binary_sensor.h"
+#endif
+
 #include <string>
 #include <cstdint>
 
@@ -50,6 +81,62 @@ enum class LightType : uint8_t {
   PANEL = 0,
   UNDERGLOW = 1
 };
+
+#ifdef USE_SWITCH
+enum class SwitchType : uint8_t {
+  FORMAT_24HR,
+  LEADING_ZERO,
+  COLON_BLINKING,
+  AM_PM_INDICATORS,
+  PERIODIC_FACES,
+  PHYSICAL_BUTTONS,
+  LINK_BRIGHTNESS,
+  ALARM_ENABLED,
+  RECORD_SOUND,
+};
+class HackPackNixieSwitch;
+#endif
+
+#ifdef USE_BUTTON
+enum class ButtonType : uint8_t {
+  START_TIMER,
+  STOP_TIMER,
+  STOP_ALARM,
+  TRIGGER_FACE,
+  TRIGGER_SLOT_MACHINE,
+  PLAY_SOUND,
+};
+class HackPackNixieButton;
+#endif
+
+#ifdef USE_SELECT
+enum class SelectType : uint8_t {
+  DISPLAY_MODE,
+  COLON_COLOR_MODE,
+};
+class HackPackNixieSelect;
+#endif
+
+#ifdef USE_NUMBER
+enum class NumberType : uint8_t {
+  TIMER_DURATION_MINUTES,
+};
+class HackPackNixieNumber;
+#endif
+
+#ifdef USE_TEXT
+enum class TextType : uint8_t {
+  TIMER_DURATION,
+};
+class HackPackNixieText;
+#endif
+
+#ifdef USE_DATETIME_TIME
+enum class TimeType : uint8_t {
+  ALARM_TIME,
+};
+class HackPackNixieTime;
+#endif
 
 struct ButtonState {
   uint8_t pin;
@@ -190,6 +277,53 @@ class HackPackNixieClock : public Component {
   uint32_t get_timer_remaining_sec() const { return timer_remaining_sec_; }
   const char* get_current_display_text() const { return current_display_chars_; }
 
+  // Entity Registrations & Pointers
+#ifdef USE_SWITCH
+  void register_switch(SwitchType type, switch_::Switch *sw);
+#endif
+#ifdef USE_SELECT
+  void register_select(SelectType type, select::Select *sel);
+#endif
+#ifdef USE_NUMBER
+  void register_number(NumberType type, number::Number *num);
+#endif
+#ifdef USE_TEXT
+  void register_text(TextType type, text::Text *txt);
+#endif
+#ifdef USE_DATETIME_TIME
+  void register_time(TimeType type, datetime::TimeEntity *tm);
+#endif
+#ifdef USE_SENSOR
+  void set_timer_remaining_sensor(sensor::Sensor *s) {
+    sensor_timer_remaining_sec_ = s;
+    if (s != nullptr) s->publish_state(timer_remaining_sec_);
+  }
+#endif
+#ifdef USE_TEXT_SENSOR
+  void set_timer_remaining_text_sensor(text_sensor::TextSensor *s) {
+    text_sensor_timer_remaining_ = s;
+    if (s != nullptr) s->publish_state("00:00:00");
+  }
+  void set_active_display_chars_text_sensor(text_sensor::TextSensor *s) {
+    text_sensor_active_display_chars_ = s;
+    if (s != nullptr) s->publish_state(std::string(current_display_chars_));
+  }
+#endif
+#ifdef USE_BINARY_SENSOR
+  void set_alarm_ringing_binary_sensor(binary_sensor::BinarySensor *s) {
+    bs_alarm_ringing_ = s;
+    if (s != nullptr) s->publish_state(alarm_ringing_);
+  }
+  void set_timer_running_binary_sensor(binary_sensor::BinarySensor *s) {
+    bs_timer_running_ = s;
+    if (s != nullptr) s->publish_state(timer_running_);
+  }
+  void set_timer_ringing_binary_sensor(binary_sensor::BinarySensor *s) {
+    bs_timer_ringing_ = s;
+    if (s != nullptr) s->publish_state(timer_ringing_);
+  }
+#endif
+
  protected:
   // Hardware Pins
   uint8_t panel_pin_{0};
@@ -297,6 +431,44 @@ class HackPackNixieClock : public Component {
   uint32_t end_col1_{0}, end_col2_{0};
   uint32_t now_col1_{0}, now_col2_{0};
 
+  // Entity Pointers
+#ifdef USE_SWITCH
+  switch_::Switch *sw_format_24hr_{nullptr};
+  switch_::Switch *sw_leading_zero_{nullptr};
+  switch_::Switch *sw_colon_blinking_{nullptr};
+  switch_::Switch *sw_am_pm_indicators_{nullptr};
+  switch_::Switch *sw_periodic_faces_{nullptr};
+  switch_::Switch *sw_physical_buttons_{nullptr};
+  switch_::Switch *sw_link_brightness_{nullptr};
+  switch_::Switch *sw_alarm_enabled_{nullptr};
+  switch_::Switch *sw_record_sound_{nullptr};
+#endif
+#ifdef USE_SELECT
+  select::Select *sel_display_mode_{nullptr};
+  select::Select *sel_colon_color_mode_{nullptr};
+#endif
+#ifdef USE_NUMBER
+  number::Number *num_timer_duration_minutes_{nullptr};
+#endif
+#ifdef USE_TEXT
+  text::Text *txt_timer_duration_{nullptr};
+#endif
+#ifdef USE_DATETIME_TIME
+  datetime::TimeEntity *tm_alarm_time_{nullptr};
+#endif
+#ifdef USE_SENSOR
+  sensor::Sensor *sensor_timer_remaining_sec_{nullptr};
+#endif
+#ifdef USE_TEXT_SENSOR
+  text_sensor::TextSensor *text_sensor_timer_remaining_{nullptr};
+  text_sensor::TextSensor *text_sensor_active_display_chars_{nullptr};
+#endif
+#ifdef USE_BINARY_SENSOR
+  binary_sensor::BinarySensor *bs_alarm_ringing_{nullptr};
+  binary_sensor::BinarySensor *bs_timer_running_{nullptr};
+  binary_sensor::BinarySensor *bs_timer_ringing_{nullptr};
+#endif
+
   // Internal Logic & Render Helpers
   void init_hardware_();
   void poll_buttons_();
@@ -356,6 +528,304 @@ class HackPackNixieLightOutput : public light::LightOutput {
  protected:
   HackPackNixieClock *parent_{nullptr};
   LightType type_{LightType::PANEL};
+};
+
+// =============================================================================
+// Native Built-in Light Effects
+// =============================================================================
+class HackPackNixieEffect : public light::LightEffect {
+ public:
+  HackPackNixieEffect(const std::string &name, ColorMode mode, HackPackNixieClock *parent)
+      : light::LightEffect(name.c_str()), mode_(mode), parent_(parent) {}
+
+  void apply() override {
+    if (this->parent_ != nullptr) {
+      this->parent_->set_color_mode(this->mode_);
+    }
+  }
+
+ protected:
+  ColorMode mode_;
+  HackPackNixieClock *parent_{nullptr};
+};
+
+// =============================================================================
+// Switch Entity Sub-platform
+// =============================================================================
+#ifdef USE_SWITCH
+class HackPackNixieSwitch : public switch_::Switch, public Component {
+ public:
+  void set_parent(HackPackNixieClock *parent) { parent_ = parent; }
+  void set_type(SwitchType type) { type_ = type; }
+  void setup() override;
+  void write_state(bool state) override;
+
+ protected:
+  HackPackNixieClock *parent_{nullptr};
+  SwitchType type_{SwitchType::FORMAT_24HR};
+};
+#endif
+
+// =============================================================================
+// Button Entity Sub-platform
+// =============================================================================
+#ifdef USE_BUTTON
+class HackPackNixieButton : public button::Button, public Component {
+ public:
+  void set_parent(HackPackNixieClock *parent) { parent_ = parent; }
+  void set_type(ButtonType type) { type_ = type; }
+  void press_action() override;
+
+ protected:
+  HackPackNixieClock *parent_{nullptr};
+  ButtonType type_{ButtonType::START_TIMER};
+};
+#endif
+
+// =============================================================================
+// Select Entity Sub-platform
+// =============================================================================
+#ifdef USE_SELECT
+class HackPackNixieSelect : public select::Select, public Component {
+ public:
+  void set_parent(HackPackNixieClock *parent) { parent_ = parent; }
+  void set_type(SelectType type) { type_ = type; }
+  void setup() override;
+  void control(const std::string &value) override;
+
+ protected:
+  HackPackNixieClock *parent_{nullptr};
+  SelectType type_{SelectType::DISPLAY_MODE};
+};
+#endif
+
+// =============================================================================
+// Number Entity Sub-platform
+// =============================================================================
+#ifdef USE_NUMBER
+class HackPackNixieNumber : public number::Number, public Component {
+ public:
+  void set_parent(HackPackNixieClock *parent) { parent_ = parent; }
+  void set_type(NumberType type) { type_ = type; }
+  void setup() override;
+  void control(float value) override;
+
+ protected:
+  HackPackNixieClock *parent_{nullptr};
+  NumberType type_{NumberType::TIMER_DURATION_MINUTES};
+};
+#endif
+
+// =============================================================================
+// Text Entity Sub-platform
+// =============================================================================
+#ifdef USE_TEXT
+class HackPackNixieText : public text::Text, public Component {
+ public:
+  void set_parent(HackPackNixieClock *parent) { parent_ = parent; }
+  void set_type(TextType type) { type_ = type; }
+  void setup() override;
+  void control(const std::string &value) override;
+
+ protected:
+  HackPackNixieClock *parent_{nullptr};
+  TextType type_{TextType::TIMER_DURATION};
+};
+#endif
+
+// =============================================================================
+// Time Entity Sub-platform
+// =============================================================================
+#ifdef USE_DATETIME_TIME
+class HackPackNixieTime : public datetime::TimeEntity, public Component {
+ public:
+  void set_parent(HackPackNixieClock *parent) { parent_ = parent; }
+  void set_type(TimeType type) { type_ = type; }
+  void setup() override;
+  void control(const datetime::TimeCall &call) override;
+
+ protected:
+  HackPackNixieClock *parent_{nullptr};
+  TimeType type_{TimeType::ALARM_TIME};
+};
+#endif
+
+// =============================================================================
+// Automation Actions
+// =============================================================================
+template<typename... Ts>
+class DisplayTextAction : public Action<Ts...> {
+ public:
+  DisplayTextAction(HackPackNixieClock *parent) : parent_(parent) {}
+  TEMPLATABLE_VALUE(std::string, message)
+  TEMPLATABLE_VALUE(uint32_t, scroll_speed_ms)
+
+  void play(const Ts &...x) override {
+    auto msg = this->message_.value(x...);
+    auto speed = this->scroll_speed_ms_.value(x...);
+    this->parent_->show_scrolling_text(msg, speed > 0 ? speed : 350);
+  }
+
+ protected:
+  HackPackNixieClock *parent_;
+};
+
+template<typename... Ts>
+class TriggerSlotMachineAction : public Action<Ts...> {
+ public:
+  TriggerSlotMachineAction(HackPackNixieClock *parent) : parent_(parent) {}
+  TEMPLATABLE_VALUE(uint32_t, duration_ms)
+
+  void play(const Ts &...x) override {
+    auto dur = this->duration_ms_.value(x...);
+    this->parent_->trigger_slot_machine(dur > 0 ? dur : 2500);
+  }
+
+ protected:
+  HackPackNixieClock *parent_;
+};
+
+template<typename... Ts>
+class TriggerFaceAnimationAction : public Action<Ts...> {
+ public:
+  TriggerFaceAnimationAction(HackPackNixieClock *parent) : parent_(parent) {}
+
+  void play(const Ts &...x) override {
+    this->parent_->trigger_face_animation();
+  }
+
+ protected:
+  HackPackNixieClock *parent_;
+};
+
+template<typename... Ts>
+class PlaySoundAction : public Action<Ts...> {
+ public:
+  PlaySoundAction(HackPackNixieClock *parent) : parent_(parent) {}
+  TEMPLATABLE_VALUE(uint32_t, duration_ms)
+
+  void play(const Ts &...x) override {
+    auto dur = this->duration_ms_.value(x...);
+    this->parent_->play_beep(dur > 0 ? dur : 150);
+  }
+
+ protected:
+  HackPackNixieClock *parent_;
+};
+
+template<typename... Ts>
+class StartTimerAction : public Action<Ts...> {
+ public:
+  StartTimerAction(HackPackNixieClock *parent) : parent_(parent) {}
+  TEMPLATABLE_VALUE(std::string, duration)
+
+  void play(const Ts &...x) override {
+    if (this->duration_.has_value()) {
+      auto dur = this->duration_.value(x...);
+      if (!dur.empty()) {
+        this->parent_->set_timer_duration_string(dur);
+      }
+    }
+    this->parent_->start_timer();
+  }
+
+ protected:
+  HackPackNixieClock *parent_;
+};
+
+template<typename... Ts>
+class StopTimerAction : public Action<Ts...> {
+ public:
+  StopTimerAction(HackPackNixieClock *parent) : parent_(parent) {}
+
+  void play(const Ts &...x) override {
+    this->parent_->stop_timer();
+  }
+
+ protected:
+  HackPackNixieClock *parent_;
+};
+
+template<typename... Ts>
+class StopAlarmAction : public Action<Ts...> {
+ public:
+  StopAlarmAction(HackPackNixieClock *parent) : parent_(parent) {}
+
+  void play(const Ts &...x) override {
+    this->parent_->stop_alarm();
+  }
+
+ protected:
+  HackPackNixieClock *parent_;
+};
+
+template<typename... Ts>
+class ArmAlarmAction : public Action<Ts...> {
+ public:
+  ArmAlarmAction(HackPackNixieClock *parent) : parent_(parent) {}
+
+  void play(const Ts &...x) override {
+    this->parent_->arm_alarm();
+  }
+
+ protected:
+  HackPackNixieClock *parent_;
+};
+
+template<typename... Ts>
+class DisarmAlarmAction : public Action<Ts...> {
+ public:
+  DisarmAlarmAction(HackPackNixieClock *parent) : parent_(parent) {}
+
+  void play(const Ts &...x) override {
+    this->parent_->disarm_alarm();
+  }
+
+ protected:
+  HackPackNixieClock *parent_;
+};
+
+template<typename... Ts>
+class SetAlarmAction : public Action<Ts...> {
+ public:
+  SetAlarmAction(HackPackNixieClock *parent) : parent_(parent) {}
+  TEMPLATABLE_VALUE(uint8_t, hour)
+  TEMPLATABLE_VALUE(uint8_t, minute)
+
+  void play(const Ts &...x) override {
+    this->parent_->set_alarm(this->hour_.value(x...), this->minute_.value(x...));
+  }
+
+ protected:
+  HackPackNixieClock *parent_;
+};
+
+template<typename... Ts>
+class SetDisplayModeAction : public Action<Ts...> {
+ public:
+  SetDisplayModeAction(HackPackNixieClock *parent) : parent_(parent) {}
+  TEMPLATABLE_VALUE(DisplayMode, mode)
+
+  void play(const Ts &...x) override {
+    this->parent_->set_display_mode(this->mode_.value(x...));
+  }
+
+ protected:
+  HackPackNixieClock *parent_;
+};
+
+template<typename... Ts>
+class SetColorModeAction : public Action<Ts...> {
+ public:
+  SetColorModeAction(HackPackNixieClock *parent) : parent_(parent) {}
+  TEMPLATABLE_VALUE(ColorMode, mode)
+
+  void play(const Ts &...x) override {
+    this->parent_->set_color_mode(this->mode_.value(x...));
+  }
+
+ protected:
+  HackPackNixieClock *parent_;
 };
 
 }  // namespace hack_pack_nixie_clock
