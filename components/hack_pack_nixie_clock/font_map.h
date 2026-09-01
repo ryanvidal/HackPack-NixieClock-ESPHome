@@ -74,5 +74,31 @@ inline void map_char_to_segments(char val, bool out7[7]) {
   for (int s = 0; s < 7; s++) out7[s] = false;
 }
 
+/**
+ * @brief Checks if a character is supported by the Nixie font charset.
+ */
+inline bool is_nixie_char_supported(char val) {
+  char lower = (val >= 'A' && val <= 'Z') ? (val + 32) : val;
+  for (size_t i = 0; i < sizeof(NIXIE_CHARSET_MAP); ++i) {
+    if (NIXIE_CHARSET_MAP[i] == lower || NIXIE_CHARSET_MAP[i] == val) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * @brief Sanitizes an input string by replacing unsupported characters with spaces.
+ */
+inline std::string sanitize_nixie_text(const std::string &input) {
+  std::string result = input;
+  for (char &c : result) {
+    if (!is_nixie_char_supported(c)) {
+      c = ' ';
+    }
+  }
+  return result;
+}
+
 }  // namespace hack_pack_nixie_clock
 }  // namespace esphome

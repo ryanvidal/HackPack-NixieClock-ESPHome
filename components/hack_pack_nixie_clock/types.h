@@ -72,7 +72,6 @@ enum class ButtonType : uint8_t {
 };
 
 enum class SelectType : uint8_t {
-  DISPLAY_MODE,
   COLON_COLOR_MODE,
 };
 
