@@ -50,7 +50,7 @@ class HackPackNixieButton : public button::Button, public Component {
 
  protected:
   HackPackNixieClock *parent_{nullptr};
-  ButtonType type_{ButtonType::START_TIMER};
+  ButtonType type_{ButtonType::RESET_TIMER};
 };
 #endif
 
@@ -103,7 +103,7 @@ class HackPackNixieTime : public datetime::TimeEntity, public Component {
   void set_type(TimeType type) { type_ = type; }
   void setup() override;
   void control(const datetime::TimeCall &call) override;
-  void update_time(uint8_t hour, uint8_t minute);
+  void update_time(uint8_t hour, uint8_t minute, uint8_t second = 0);
 
  protected:
   HackPackNixieClock *parent_{nullptr};

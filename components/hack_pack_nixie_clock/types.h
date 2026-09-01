@@ -60,11 +60,11 @@ enum class SwitchType : uint8_t {
   LINK_BRIGHTNESS,
   ALARM_ENABLED,
   RECORD_SOUND,
+  TIMER_RUNNING,
 };
 
 enum class ButtonType : uint8_t {
-  START_TIMER,
-  STOP_TIMER,
+  RESET_TIMER,
   STOP_ALARM,
   TRIGGER_FACE,
   TRIGGER_SLOT_MACHINE,
@@ -85,15 +85,17 @@ enum class TextType : uint8_t {
 
 enum class TimeType : uint8_t {
   ALARM_TIME,
+  TIMER_DURATION,
 };
 
-/// @brief Physical button debouncing state tracker.
+/// @brief Physical button debouncing and auto-repeat state tracker.
 struct ButtonState {
   uint8_t pin{0};
   bool last_reading{true};
   bool is_pressed{false};
   uint32_t press_start{0};
   bool long_press_handled{false};
+  uint32_t last_repeat_time{0};
 };
 
 // =============================================================================

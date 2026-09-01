@@ -23,6 +23,7 @@ CONF_PHYSICAL_BUTTONS = "physical_buttons"
 CONF_LINK_BRIGHTNESS = "link_brightness"
 CONF_ALARM_ENABLED = "alarm_enabled"
 CONF_RECORD_SOUND = "record_sound"
+CONF_TIMER_RUNNING = "timer_running"
 
 SWITCHES = {
     CONF_FORMAT_24HR: (SwitchType.FORMAT_24HR, "24-Hour Format", "mdi:clock-time-twelve-outline", ENTITY_CATEGORY_CONFIG),
@@ -34,6 +35,7 @@ SWITCHES = {
     CONF_LINK_BRIGHTNESS: (SwitchType.LINK_BRIGHTNESS, "Link Panel & Underglow Brightness", "mdi:link-variant", ENTITY_CATEGORY_CONFIG),
     CONF_ALARM_ENABLED: (SwitchType.ALARM_ENABLED, "Alarm Enabled", "mdi:alarm-check", None),
     CONF_RECORD_SOUND: (SwitchType.RECORD_SOUND, "Record Sound (Hold)", "mdi:microphone", None),
+    CONF_TIMER_RUNNING: (SwitchType.TIMER_RUNNING, "Timer Running", "mdi:timer-play-outline", None),
 }
 
 CONFIG_SCHEMA = cv.Schema({

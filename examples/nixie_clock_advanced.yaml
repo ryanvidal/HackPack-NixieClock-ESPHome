@@ -80,6 +80,20 @@ api:
         - hack_pack_nixie_clock.start_timer:
             duration: !lambda "return duration;"
 
+    # --------------------------------------------------------------------------
+    # Action: Show Time (Switch Display to Clock View)
+    # --------------------------------------------------------------------------
+    - action: show_time
+      then:
+        - hack_pack_nixie_clock.show_time:
+
+    # --------------------------------------------------------------------------
+    # Action: Show Timer (Switch Display to Timer View)
+    # --------------------------------------------------------------------------
+    - action: show_timer
+      then:
+        - hack_pack_nixie_clock.show_timer:
+
 ota:
   - platform: esphome
     on_begin:
@@ -158,13 +172,6 @@ text:
       name: "Timer Duration"
       device_id: dev_timer
 
-number:
-  - platform: hack_pack_nixie_clock
-    timer_duration_minutes:
-      name: "Timer Duration (Minutes)"
-      device_id: dev_timer
-      mode: BOX
-
 switch:
   - platform: hack_pack_nixie_clock
     format_24hr:
@@ -194,6 +201,9 @@ switch:
     record_sound:
       name: "Record Sound (Hold)"
       device_id: dev_audio
+    timer_running:
+      name: "Timer Running"
+      device_id: dev_timer
 
 select:
   - platform: hack_pack_nixie_clock
@@ -204,11 +214,8 @@ select:
 
 button:
   - platform: hack_pack_nixie_clock
-    start_timer:
-      name: "Start Countdown Timer"
-      device_id: dev_timer
-    stop_timer:
-      name: "Stop Countdown Timer"
+    reset_timer:
+      name: "Reset Countdown Timer"
       device_id: dev_timer
     stop_alarm:
       name: "Stop Ringing Alarm"
@@ -234,9 +241,6 @@ binary_sensor:
     alarm_ringing:
       name: "Alarm Ringing"
       device_id: dev_alarm
-    timer_running:
-      name: "Timer Running"
-      device_id: dev_timer
     timer_ringing:
       name: "Timer Ringing"
       device_id: dev_timer

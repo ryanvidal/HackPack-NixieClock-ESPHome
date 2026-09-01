@@ -12,16 +12,14 @@ HackPackNixieButton = hack_pack_nixie_clock_ns.class_(
 )
 ButtonType = hack_pack_nixie_clock_ns.enum("ButtonType", is_class=True)
 
-CONF_START_TIMER = "start_timer"
-CONF_STOP_TIMER = "stop_timer"
+CONF_RESET_TIMER = "reset_timer"
 CONF_STOP_ALARM = "stop_alarm"
 CONF_TRIGGER_FACE = "trigger_face"
 CONF_TRIGGER_SLOT_MACHINE = "trigger_slot_machine"
 CONF_PLAY_SOUND = "play_sound"
 
 BUTTONS = {
-    CONF_START_TIMER: (ButtonType.START_TIMER, "Start Countdown Timer", "mdi:timer-play-outline"),
-    CONF_STOP_TIMER: (ButtonType.STOP_TIMER, "Stop Countdown Timer", "mdi:timer-stop-outline"),
+    CONF_RESET_TIMER: (ButtonType.RESET_TIMER, "Reset Countdown Timer", "mdi:timer-refresh-outline"),
     CONF_STOP_ALARM: (ButtonType.STOP_ALARM, "Stop Ringing Alarm", "mdi:alarm-snooze"),
     CONF_TRIGGER_FACE: (ButtonType.TRIGGER_FACE, "Trigger Face Animation", "mdi:emoticon-wink-outline"),
     CONF_TRIGGER_SLOT_MACHINE: (ButtonType.TRIGGER_SLOT_MACHINE, "Cathode Cleaning (Slot Machine)", "mdi:slot-machine"),

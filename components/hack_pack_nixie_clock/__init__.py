@@ -43,12 +43,15 @@ TriggerFaceAnimationAction = hack_pack_nixie_clock_ns.class_("TriggerFaceAnimati
 PlaySoundAction = hack_pack_nixie_clock_ns.class_("PlaySoundAction", automation.Action)
 StartTimerAction = hack_pack_nixie_clock_ns.class_("StartTimerAction", automation.Action)
 StopTimerAction = hack_pack_nixie_clock_ns.class_("StopTimerAction", automation.Action)
+ResetTimerAction = hack_pack_nixie_clock_ns.class_("ResetTimerAction", automation.Action)
 StopAlarmAction = hack_pack_nixie_clock_ns.class_("StopAlarmAction", automation.Action)
 ArmAlarmAction = hack_pack_nixie_clock_ns.class_("ArmAlarmAction", automation.Action)
 DisarmAlarmAction = hack_pack_nixie_clock_ns.class_("DisarmAlarmAction", automation.Action)
 SetAlarmAction = hack_pack_nixie_clock_ns.class_("SetAlarmAction", automation.Action)
 SetDisplayModeAction = hack_pack_nixie_clock_ns.class_("SetDisplayModeAction", automation.Action)
 SetColorModeAction = hack_pack_nixie_clock_ns.class_("SetColorModeAction", automation.Action)
+ShowTimeAction = hack_pack_nixie_clock_ns.class_("ShowTimeAction", automation.Action)
+ShowTimerAction = hack_pack_nixie_clock_ns.class_("ShowTimerAction", automation.Action)
 
 HACK_PACK_NIXIE_CLOCK_ACTION_SCHEMA = maybe_simple_id({
     cv.GenerateID(): cv.use_id(HackPackNixieClock),
@@ -202,6 +205,17 @@ async def stop_timer_to_code(config, action_id, template_arg, args):
 
 
 @automation.register_action(
+    "hack_pack_nixie_clock.reset_timer",
+    ResetTimerAction,
+    HACK_PACK_NIXIE_CLOCK_ACTION_SCHEMA,
+    synchronous=True,
+)
+async def reset_timer_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(action_id, template_arg, paren)
+
+
+@automation.register_action(
     "hack_pack_nixie_clock.stop_alarm",
     StopAlarmAction,
     HACK_PACK_NIXIE_CLOCK_ACTION_SCHEMA,
@@ -286,3 +300,25 @@ async def set_color_mode_to_code(config, action_id, template_arg, args):
     template_ = await cg.templatable(config["mode"], args, ColorModeEnum)
     cg.add(var.set_mode(template_))
     return var
+
+
+@automation.register_action(
+    "hack_pack_nixie_clock.show_time",
+    ShowTimeAction,
+    HACK_PACK_NIXIE_CLOCK_ACTION_SCHEMA,
+    synchronous=True,
+)
+async def show_time_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(action_id, template_arg, paren)
+
+
+@automation.register_action(
+    "hack_pack_nixie_clock.show_timer",
+    ShowTimerAction,
+    HACK_PACK_NIXIE_CLOCK_ACTION_SCHEMA,
+    synchronous=True,
+)
+async def show_timer_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(action_id, template_arg, paren)

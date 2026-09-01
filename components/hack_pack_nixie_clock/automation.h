@@ -102,6 +102,19 @@ class StopTimerAction : public Action<Ts...> {
 };
 
 template<typename... Ts>
+class ResetTimerAction : public Action<Ts...> {
+ public:
+  ResetTimerAction(HackPackNixieClock *parent) : parent_(parent) {}
+
+  void play(const Ts &...x) override {
+    this->parent_->reset_timer();
+  }
+
+ protected:
+  HackPackNixieClock *parent_;
+};
+
+template<typename... Ts>
 class StopAlarmAction : public Action<Ts...> {
  public:
   StopAlarmAction(HackPackNixieClock *parent) : parent_(parent) {}
@@ -177,6 +190,32 @@ class SetColorModeAction : public Action<Ts...> {
 
   void play(const Ts &...x) override {
     this->parent_->set_color_mode(this->mode_.value(x...));
+  }
+
+ protected:
+  HackPackNixieClock *parent_;
+};
+
+template<typename... Ts>
+class ShowTimeAction : public Action<Ts...> {
+ public:
+  ShowTimeAction(HackPackNixieClock *parent) : parent_(parent) {}
+
+  void play(const Ts &...x) override {
+    this->parent_->set_display_mode(MODE_TIME);
+  }
+
+ protected:
+  HackPackNixieClock *parent_;
+};
+
+template<typename... Ts>
+class ShowTimerAction : public Action<Ts...> {
+ public:
+  ShowTimerAction(HackPackNixieClock *parent) : parent_(parent) {}
+
+  void play(const Ts &...x) override {
+    this->parent_->set_display_mode(MODE_TIMER);
   }
 
  protected:
