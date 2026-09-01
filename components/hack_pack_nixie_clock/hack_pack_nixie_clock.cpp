@@ -688,9 +688,6 @@ void HackPackNixieClock::start_timer(uint32_t duration_sec) {
   if (bs_timer_running_ != nullptr) bs_timer_running_->publish_state(true);
   if (bs_timer_ringing_ != nullptr) bs_timer_ringing_->publish_state(false);
 #endif
-#ifdef USE_SENSOR
-  if (sensor_timer_remaining_sec_ != nullptr) sensor_timer_remaining_sec_->publish_state(timer_remaining_sec_);
-#endif
 }
 
 void HackPackNixieClock::stop_timer() {
@@ -701,9 +698,6 @@ void HackPackNixieClock::stop_timer() {
 #ifdef USE_BINARY_SENSOR
   if (bs_timer_running_ != nullptr) bs_timer_running_->publish_state(false);
   if (bs_timer_ringing_ != nullptr) bs_timer_ringing_->publish_state(false);
-#endif
-#ifdef USE_SENSOR
-  if (sensor_timer_remaining_sec_ != nullptr) sensor_timer_remaining_sec_->publish_state(0);
 #endif
 #ifdef USE_TEXT_SENSOR
   if (text_sensor_timer_remaining_ != nullptr) text_sensor_timer_remaining_->publish_state("00:00:00");
@@ -940,9 +934,6 @@ void HackPackNixieClock::update_display_state_() {
           if (bs_timer_running_ != nullptr) bs_timer_running_->publish_state(false);
           if (bs_timer_ringing_ != nullptr) bs_timer_ringing_->publish_state(true);
 #endif
-#ifdef USE_SENSOR
-          if (sensor_timer_remaining_sec_ != nullptr) sensor_timer_remaining_sec_->publish_state(0);
-#endif
 #ifdef USE_TEXT_SENSOR
           if (text_sensor_timer_remaining_ != nullptr) text_sensor_timer_remaining_->publish_state("00:00:00");
 #endif
@@ -957,9 +948,6 @@ void HackPackNixieClock::update_display_state_() {
           uint32_t ts = tot_sec % 60;
 
           if (timer_remaining_sec_ != prev_sec) {
-#ifdef USE_SENSOR
-            if (sensor_timer_remaining_sec_ != nullptr) sensor_timer_remaining_sec_->publish_state(timer_remaining_sec_);
-#endif
 #ifdef USE_TEXT_SENSOR
             if (text_sensor_timer_remaining_ != nullptr) {
               char buf[16];
