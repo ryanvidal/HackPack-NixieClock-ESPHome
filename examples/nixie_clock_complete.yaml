@@ -1,11 +1,21 @@
 # ==============================================================================
-# ESPHome Example Configuration for Hack Pack Nixie Clock (Box 15)
-# Board: ESP32-C3 Mini
+# Complete ESPHome Example: CrunchLabs Hack Pack Nixie Clock (Box 15)
 # ==============================================================================
 
 esphome:
   name: hack-pack-nixie-clock
-  friendly_name: Hack Pack Nixie Clock
+  friendly_name: "Hack Pack Nixie Clock"
+  devices:
+    - name: "Clock & Display"
+      id: dev_clock
+    - name: "Lighting"
+      id: dev_lighting
+    - name: "Alarm Clock"
+      id: dev_alarm
+    - name: "Countdown Timer"
+      id: dev_timer
+    - name: "Audio & Voice"
+      id: dev_audio
 
 esp32:
   variant: esp32c3
@@ -16,62 +26,86 @@ logger:
   level: INFO
 
 api:
-  encryption:
-    key: "YOUR_API_ENCRYPTION_KEY"
-  services:
+  # encryption:
+  #   key: "YOUR_32_BYTE_BASE64_KEY"
+  actions:
     # --------------------------------------------------------------------------
-    # Service: Display Custom Text on Nixie Tubes
+    # Action: Display Alert & Scrolling Custom Text on Nixie Tubes
     # --------------------------------------------------------------------------
-    - service: display_text
+    - action: display_text
       variables:
         message: string
-        duration_seconds: int
+        scroll_speed_ms: int
       then:
         - lambda: |-
-            uint32_t dur = (duration_seconds > 0) ? duration_seconds : 5;
-            id(clock_hub).show_custom_text(message, dur);
+            uint32_t speed = (scroll_speed_ms > 0) ? (uint32_t)scroll_speed_ms : 350;
+            id(clock_hub).show_scrolling_text(message, speed);
 
     # --------------------------------------------------------------------------
-    # Service: Trigger Face Animation
+    # Action: Trigger Face Animation
     # --------------------------------------------------------------------------
-    - service: trigger_face_animation
+    - action: trigger_face_animation
       then:
         - lambda: |-
             id(clock_hub).trigger_face_animation();
 
     # --------------------------------------------------------------------------
-    # Service: Trigger Cathode Clean / Slot Machine Animation
+    # Action: Trigger Cathode Clean / Slot Machine Animation
     # --------------------------------------------------------------------------
-    - service: trigger_slot_machine
+    - action: trigger_slot_machine
       variables:
         duration_ms: int
       then:
         - lambda: |-
-            uint32_t dur = (duration_ms > 0) ? duration_ms : 2500;
+            uint32_t dur = (duration_ms > 0) ? (uint32_t)duration_ms : 2500;
             id(clock_hub).trigger_slot_machine(dur);
 
     # --------------------------------------------------------------------------
-    # Service: Play Voice Recording / Sound Beep
+    # Action: Play Voice Recording / Sound Beep
     # --------------------------------------------------------------------------
-    - service: play_sound
+    - action: play_sound
       then:
         - lambda: |-
             id(clock_hub).play_beep(150);
 
+    # --------------------------------------------------------------------------
+    # Action: Start Countdown Timer
+    # --------------------------------------------------------------------------
+    - action: start_timer
+      variables:
+        duration: string
+      then:
+        - lambda: |-
+            if (!duration.empty()) {
+              uint32_t s = id(clock_hub).set_timer_duration_string(duration);
+              id(text_timer_duration).publish_state(duration);
+              if (s > 0) {
+                id(number_timer_minutes).publish_state(s / 60);
+              }
+            }
+            id(clock_hub).start_timer();
+            id(select_display_mode).publish_state("Timer");
+
 ota:
   - platform: esphome
+    on_begin:
+      then:
+        - lambda: |-
+            id(clock_hub).set_display_mode(esphome::hack_pack_nixie_clock::MODE_OFF);
+            id(clock_hub).set_panel_brightness(0);
+            id(clock_hub).set_underglow_brightness(25);
 
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
   ap:
-    ssid: Hack Pack Nixie Fallback Hotspot
-    password: "YOUR_FALLBACK_PASSWORD"
+    ssid: "Hack Pack Nixie Fallback Hotspot"
+    password: "fallback_password"
 
 captive_portal:
 
 # ==============================================================================
-# Time Source
+# Time Source (Syncs local time with Home Assistant)
 # ==============================================================================
 time:
   - platform: homeassistant
@@ -81,21 +115,80 @@ time:
 # External Component: Hack Pack Nixie Clock
 # ==============================================================================
 external_components:
-  # Option A: From Local Directory
   - source:
       type: local
       path: components
-  # Option B: From Remote GitHub (Uncomment when published)
-  # - source: github://YOUR_GITHUB_USERNAME/hack-pack-nixie-clock
-  #   components: [ hack_pack_nixie_clock ]
+    components: [hack_pack_nixie_clock]
 
 # ==============================================================================
-# Hack Pack Nixie Clock Component
-# All pins default automatically to the Hack Pack Box 15 hardware!
+# Hack Pack Nixie Clock Component Hub
 # ==============================================================================
 hack_pack_nixie_clock:
   id: clock_hub
   time_id: homeassistant_time
+
+# ==============================================================================
+# Native Light Entities (RGB Color Picker & Brightness Controls)
+# ==============================================================================
+light:
+  - platform: hack_pack_nixie_clock
+    type: panel
+    name: "Nixie Tube Lighting"
+    id: light_panel
+    device_id: dev_lighting
+    icon: "mdi:led-strip"
+    restore_mode: RESTORE_DEFAULT_ON
+    effects:
+      - lambda:
+          name: "Rainbow"
+          update_interval: 1s
+          lambda: |-
+            if (initial_run) {
+              id(clock_hub).set_color_mode(esphome::hack_pack_nixie_clock::COLOR_RAINBOW);
+            }
+      - lambda:
+          name: "Gradient"
+          update_interval: 1s
+          lambda: |-
+            if (initial_run) {
+              id(clock_hub).set_color_mode(esphome::hack_pack_nixie_clock::COLOR_GRADIENT);
+            }
+      - lambda:
+          name: "Flow"
+          update_interval: 1s
+          lambda: |-
+            if (initial_run) {
+              id(clock_hub).set_color_mode(esphome::hack_pack_nixie_clock::COLOR_FLOW);
+            }
+      - lambda:
+          name: "Wipe"
+          update_interval: 1s
+          lambda: |-
+            if (initial_run) {
+              id(clock_hub).set_color_mode(esphome::hack_pack_nixie_clock::COLOR_WIPE);
+            }
+      - lambda:
+          name: "Pulse"
+          update_interval: 1s
+          lambda: |-
+            if (initial_run) {
+              id(clock_hub).set_color_mode(esphome::hack_pack_nixie_clock::COLOR_PULSE);
+            }
+      - lambda:
+          name: "Bounce"
+          update_interval: 1s
+          lambda: |-
+            if (initial_run) {
+              id(clock_hub).set_color_mode(esphome::hack_pack_nixie_clock::COLOR_BOUNCE);
+            }
+
+  - platform: hack_pack_nixie_clock
+    type: underglow
+    name: "Underglow Lighting"
+    id: light_underglow
+    device_id: dev_lighting
+    icon: "mdi:wall-sconce-flat"
+    restore_mode: RESTORE_DEFAULT_ON
 
 # ==============================================================================
 # Home Assistant Controls & Entities
@@ -106,6 +199,7 @@ datetime:
     type: time
     name: "Alarm Time"
     id: alarm_time_picker
+    device_id: dev_alarm
     icon: "mdi:clock-edit-outline"
     initial_value: "07:00:00"
     optimistic: true
@@ -113,11 +207,50 @@ datetime:
       - lambda: |-
           id(clock_hub).set_alarm(x.hour, x.minute);
 
+text:
+  - platform: template
+    name: "Timer Duration"
+    id: text_timer_duration
+    device_id: dev_timer
+    icon: "mdi:timer-edit-outline"
+    initial_value: "5m"
+    optimistic: true
+    mode: text
+    set_action:
+      - lambda: |-
+          uint32_t s = id(clock_hub).set_timer_duration_string(x);
+          if (s > 0) {
+            id(number_timer_minutes).publish_state(s / 60);
+          }
+
+number:
+  - platform: template
+    name: "Timer Duration (Minutes)"
+    id: number_timer_minutes
+    device_id: dev_timer
+    icon: "mdi:timer-sand"
+    unit_of_measurement: "min"
+    min_value: 1
+    max_value: 180
+    step: 1
+    mode: box
+    initial_value: 5
+    optimistic: true
+    set_action:
+      - lambda: |-
+          char buf[16];
+          snprintf(buf, sizeof(buf), "%dm", (int)x);
+          id(text_timer_duration).publish_state(buf);
+          id(clock_hub).set_timer_duration((uint32_t)x * 60);
+
 switch:
+  # --- Clock & Display Settings ---
   - platform: template
     name: "24-Hour Format"
     id: switch_24hr_mode
+    device_id: dev_clock
     icon: "mdi:clock-time-twelve-outline"
+    entity_category: config
     restore_mode: RESTORE_DEFAULT_OFF
     optimistic: true
     turn_on_action:
@@ -128,7 +261,9 @@ switch:
   - platform: template
     name: "Leading Zero"
     id: switch_leading_zero
+    device_id: dev_clock
     icon: "mdi:numeric-0"
+    entity_category: config
     restore_mode: RESTORE_DEFAULT_OFF
     optimistic: true
     turn_on_action:
@@ -139,7 +274,9 @@ switch:
   - platform: template
     name: "Colon Blinking"
     id: switch_colon_blinking
+    device_id: dev_clock
     icon: "mdi:dots-vertical"
+    entity_category: config
     restore_mode: RESTORE_DEFAULT_OFF
     optimistic: true
     turn_on_action:
@@ -150,7 +287,9 @@ switch:
   - platform: template
     name: "AM⁄PM Indicators"
     id: switch_am_pm_indicators
+    device_id: dev_clock
     icon: "mdi:theme-light-dark"
+    entity_category: config
     restore_mode: RESTORE_DEFAULT_ON
     optimistic: true
     turn_on_action:
@@ -161,7 +300,9 @@ switch:
   - platform: template
     name: "Periodic Face Animations"
     id: switch_face_animations
+    device_id: dev_clock
     icon: "mdi:emoticon-outline"
+    entity_category: config
     restore_mode: RESTORE_DEFAULT_OFF
     optimistic: true
     turn_on_action:
@@ -170,8 +311,42 @@ switch:
       - lambda: id(clock_hub).set_face_animations(false);
 
   - platform: template
+    name: "Physical Buttons Enabled"
+    id: switch_physical_buttons
+    device_id: dev_clock
+    icon: "mdi:gesture-tap-button"
+    entity_category: config
+    restore_mode: RESTORE_DEFAULT_ON
+    optimistic: true
+    turn_on_action:
+      - lambda: id(clock_hub).set_physical_buttons(true);
+    turn_off_action:
+      - lambda: id(clock_hub).set_physical_buttons(false);
+
+  # --- Lighting Settings ---
+  - platform: template
+    name: "Link Panel & Underglow Brightness"
+    id: switch_link_brightness
+    device_id: dev_lighting
+    icon: "mdi:link-variant"
+    entity_category: config
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: true
+    turn_on_action:
+      - lambda: id(clock_hub).set_link_brightness(true);
+      - light.control:
+          id: light_underglow
+          state: !lambda 'return id(light_panel).current_values.is_on();'
+          brightness: !lambda 'return id(light_panel).current_values.get_brightness();'
+          transition_length: 0s
+    turn_off_action:
+      - lambda: id(clock_hub).set_link_brightness(false);
+
+  # --- Alarm Settings ---
+  - platform: template
     name: "Alarm Enabled"
     id: switch_alarm_enabled
+    device_id: dev_alarm
     icon: "mdi:alarm-check"
     restore_mode: RESTORE_DEFAULT_OFF
     optimistic: true
@@ -180,20 +355,11 @@ switch:
     turn_off_action:
       - lambda: id(clock_hub).disarm_alarm();
 
-  - platform: template
-    name: "Physical Buttons Enabled"
-    id: switch_physical_buttons
-    icon: "mdi:gesture-tap-button"
-    restore_mode: RESTORE_DEFAULT_ON
-    optimistic: true
-    turn_on_action:
-      - lambda: id(clock_hub).set_physical_buttons(true);
-    turn_off_action:
-      - lambda: id(clock_hub).set_physical_buttons(false);
-
+  # --- Audio & Voice Settings ---
   - platform: template
     name: "Record Sound (Hold)"
     id: switch_record_sound
+    device_id: dev_audio
     icon: "mdi:microphone"
     optimistic: true
     turn_on_action:
@@ -202,35 +368,14 @@ switch:
       - lambda: id(clock_hub).set_record_sound(false);
 
 select:
-  - platform: template
-    name: "Color Animation Mode"
-    id: select_color_mode
-    icon: "mdi:palette"
-    optimistic: true
-    initial_option: "Rainbow"
-    options:
-      - "Rainbow"
-      - "Solid"
-      - "Gradient"
-      - "Flow"
-      - "Wipe"
-      - "Pulse"
-      - "Bounce"
-    set_action:
-      - lambda: |-
-          if (x == "Rainbow") id(clock_hub).set_color_mode(esphome::hack_pack_nixie_clock::COLOR_RAINBOW);
-          else if (x == "Solid") id(clock_hub).set_color_mode(esphome::hack_pack_nixie_clock::COLOR_SOLID);
-          else if (x == "Gradient") id(clock_hub).set_color_mode(esphome::hack_pack_nixie_clock::COLOR_GRADIENT);
-          else if (x == "Flow") id(clock_hub).set_color_mode(esphome::hack_pack_nixie_clock::COLOR_FLOW);
-          else if (x == "Wipe") id(clock_hub).set_color_mode(esphome::hack_pack_nixie_clock::COLOR_WIPE);
-          else if (x == "Pulse") id(clock_hub).set_color_mode(esphome::hack_pack_nixie_clock::COLOR_PULSE);
-          else if (x == "Bounce") id(clock_hub).set_color_mode(esphome::hack_pack_nixie_clock::COLOR_BOUNCE);
-
+  # --- Clock & Display Selects ---
   - platform: template
     name: "Display Mode"
     id: select_display_mode
+    device_id: dev_clock
     icon: "mdi:monitor"
     optimistic: true
+    restore_value: true
     initial_option: "Time"
     options:
       - "Time"
@@ -253,8 +398,11 @@ select:
   - platform: template
     name: "Colon Color Mode"
     id: select_colon_mode
+    device_id: dev_clock
+    entity_category: config
     icon: "mdi:circle-half-full"
     optimistic: true
+    restore_value: true
     initial_option: "Auto Blend"
     options:
       - "Auto Blend"
@@ -266,139 +414,42 @@ select:
           else if (x == "Match Underglow") id(clock_hub).set_colon_mode(esphome::hack_pack_nixie_clock::COLON_MATCH_UNDERGLOW);
           else if (x == "Fixed") id(clock_hub).set_colon_mode(esphome::hack_pack_nixie_clock::COLON_FIXED);
 
-number:
-  - platform: template
-    name: "Panel Brightness"
-    id: number_panel_brightness
-    icon: "mdi:brightness-6"
-    min_value: 0
-    max_value: 100
-    step: 1
-    initial_value: 100
-    unit_of_measurement: "%"
-    optimistic: true
-    set_action:
-      - lambda: |-
-          id(clock_hub).set_panel_brightness((uint8_t)(x * 255 / 100));
-
-  - platform: template
-    name: "Underglow Brightness"
-    id: number_ug_brightness
-    icon: "mdi:brightness-5"
-    min_value: 0
-    max_value: 100
-    step: 1
-    initial_value: 100
-    unit_of_measurement: "%"
-    optimistic: true
-    set_action:
-      - lambda: |-
-          id(clock_hub).set_underglow_brightness((uint8_t)(x * 255 / 100));
-
-  - platform: template
-    name: "Panel Color Position"
-    id: number_panel_color_pos
-    icon: "mdi:palette-swatch"
-    min_value: 0
-    max_value: 255
-    step: 1
-    initial_value: 200
-    optimistic: true
-    set_action:
-      - lambda: id(clock_hub).set_panel_color_pos((uint8_t)x);
-
-  - platform: template
-    name: "Underglow Color Position"
-    id: number_ug_color_pos
-    icon: "mdi:palette-swatch-outline"
-    min_value: 0
-    max_value: 255
-    step: 1
-    initial_value: 200
-    optimistic: true
-    set_action:
-      - lambda: id(clock_hub).set_underglow_color_pos((uint8_t)x);
-
-  - platform: template
-    name: "Timer Hours"
-    id: number_timer_hours
-    icon: "mdi:timer-sand"
-    min_value: 0
-    max_value: 99
-    step: 1
-    initial_value: 0
-    optimistic: true
-
-  - platform: template
-    name: "Timer Minutes"
-    id: number_timer_minutes
-    icon: "mdi:timer-sand"
-    min_value: 0
-    max_value: 59
-    step: 1
-    initial_value: 5
-    optimistic: true
-
-  - platform: template
-    name: "Timer Seconds"
-    id: number_timer_seconds
-    icon: "mdi:timer-sand"
-    min_value: 0
-    max_value: 59
-    step: 1
-    initial_value: 0
-    optimistic: true
-
 button:
-  - platform: template
-    name: "Arm Alarm"
-    id: button_arm_alarm
-    icon: "mdi:alarm-plus"
-    on_press:
-      - lambda: |-
-          id(clock_hub).arm_alarm();
-          id(switch_alarm_enabled).publish_state(true);
-
-  - platform: template
-    name: "Disarm Alarm"
-    id: button_disarm_alarm
-    icon: "mdi:alarm-off"
-    on_press:
-      - lambda: |-
-          id(clock_hub).disarm_alarm();
-          id(switch_alarm_enabled).publish_state(false);
-
-  - platform: template
-    name: "Stop Ringing Alarm"
-    id: button_stop_alarm
-    icon: "mdi:alarm-snooze"
-    on_press:
-      - lambda: id(clock_hub).stop_alarm();
-
+  # --- Countdown Timer Buttons ---
   - platform: template
     name: "Start Countdown Timer"
     id: button_start_timer
+    device_id: dev_timer
     icon: "mdi:timer-play-outline"
     on_press:
       - lambda: |-
-          uint32_t h = (uint32_t)id(number_timer_hours).state;
-          uint32_t m = (uint32_t)id(number_timer_minutes).state;
-          uint32_t s = (uint32_t)id(number_timer_seconds).state;
-          id(clock_hub).start_timer(h, m, s);
+          id(clock_hub).start_timer();
           id(select_display_mode).publish_state("Timer");
 
   - platform: template
     name: "Stop Countdown Timer"
     id: button_stop_timer
+    device_id: dev_timer
     icon: "mdi:timer-stop-outline"
     on_press:
       - lambda: |-
           id(clock_hub).stop_timer();
           id(select_display_mode).publish_state("Time");
 
+  # --- Alarm Buttons ---
+  - platform: template
+    name: "Stop Ringing Alarm"
+    id: button_stop_alarm
+    device_id: dev_alarm
+    icon: "mdi:alarm-snooze"
+    on_press:
+      - lambda: id(clock_hub).stop_alarm();
+
+  # --- Clock & Animations Buttons ---
   - platform: template
     name: "Trigger Face Animation"
     id: button_trigger_face
+    device_id: dev_clock
     icon: "mdi:emoticon-wink-outline"
     on_press:
       - lambda: id(clock_hub).trigger_face_animation();
@@ -406,31 +457,39 @@ button:
   - platform: template
     name: "Cathode Cleaning (Slot Machine)"
     id: button_trigger_slot_machine
+    device_id: dev_clock
     icon: "mdi:slot-machine"
     on_press:
       - lambda: id(clock_hub).trigger_slot_machine(2500);
 
+  # --- Audio & Voice Buttons ---
   - platform: template
     name: "Play Audio Recording"
     id: button_play_sound
+    device_id: dev_audio
     icon: "mdi:volume-high"
     on_press:
       - lambda: id(clock_hub).play_beep(150);
 
 sensor:
+  # --- Countdown Timer Sensor ---
   - platform: template
     name: "Timer Remaining Seconds"
     id: sensor_timer_remaining_sec
+    device_id: dev_timer
     icon: "mdi:timer-outline"
+    entity_category: diagnostic
     unit_of_measurement: "s"
     accuracy_decimals: 0
     lambda: |-
       return id(clock_hub).get_timer_remaining_sec();
 
 text_sensor:
+  # --- Countdown Timer Text Sensor ---
   - platform: template
     name: "Timer Remaining"
     id: text_sensor_timer_formatted
+    device_id: dev_timer
     icon: "mdi:timer-sand-full"
     lambda: |-
       char buf[16];
@@ -438,24 +497,31 @@ text_sensor:
       snprintf(buf, sizeof(buf), "%02lu:%02lu:%02lu", (unsigned long)(s / 3600), (unsigned long)((s % 3600) / 60), (unsigned long)(s % 60));
       return std::string(buf);
 
+  # --- Clock & Display Diagnostic Sensor ---
   - platform: template
     name: "Active Display Characters"
     id: text_sensor_display_chars
+    device_id: dev_clock
     icon: "mdi:format-text"
+    entity_category: diagnostic
     lambda: |-
       return std::string(id(clock_hub).get_current_display_text());
 
 binary_sensor:
+  # --- Alarm Status Sensor ---
   - platform: template
     name: "Alarm Ringing"
     id: bs_alarm_ringing
+    device_id: dev_alarm
     icon: "mdi:alarm-bell"
     lambda: |-
       return id(clock_hub).is_alarm_ringing();
 
+  # --- Countdown Timer Status Sensors ---
   - platform: template
     name: "Timer Running"
     id: bs_timer_running
+    device_id: dev_timer
     icon: "mdi:timer-outline"
     lambda: |-
       return id(clock_hub).is_timer_running();
@@ -463,6 +529,7 @@ binary_sensor:
   - platform: template
     name: "Timer Ringing"
     id: bs_timer_ringing
+    device_id: dev_timer
     icon: "mdi:bell-ring-outline"
     lambda: |-
       return id(clock_hub).is_timer_ringing();

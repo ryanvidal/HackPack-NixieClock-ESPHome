@@ -14,6 +14,7 @@ hack_pack_nixie_clock_ns = cg.esphome_ns.namespace('hack_pack_nixie_clock')
 HackPackNixieClock = hack_pack_nixie_clock_ns.class_('HackPackNixieClock', cg.Component)
 
 # Configuration Keys
+CONF_HACK_PACK_NIXIE_CLOCK_ID = "hack_pack_nixie_clock_id"
 CONF_PANEL_PIN = "panel_pin"
 CONF_UNDERGLOW_PIN = "underglow_pin"
 CONF_PLAY_PIN = "play_pin"
