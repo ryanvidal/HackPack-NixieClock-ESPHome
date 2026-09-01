@@ -547,7 +547,11 @@ class HackPackNixieLightOutput : public light::LightOutput {
 class HackPackNixieEffect : public light::LightEffect {
  public:
   HackPackNixieEffect(const std::string &name, ColorMode mode, HackPackNixieClock *parent)
-      : light::LightEffect(name.c_str()), mode_(mode), parent_(parent) {}
+      : light::LightEffect(nullptr), name_holder_(name), mode_(mode), parent_(parent) {
+    this->name_ = this->name_holder_.c_str();
+  }
+  HackPackNixieEffect(const char *name, ColorMode mode, HackPackNixieClock *parent)
+      : light::LightEffect(name), mode_(mode), parent_(parent) {}
 
   void apply() override {
     if (this->parent_ != nullptr) {
@@ -556,6 +560,7 @@ class HackPackNixieEffect : public light::LightEffect {
   }
 
  protected:
+  std::string name_holder_;
   ColorMode mode_;
   HackPackNixieClock *parent_{nullptr};
 };
