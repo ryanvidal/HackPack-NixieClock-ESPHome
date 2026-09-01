@@ -5,6 +5,7 @@ from esphome.const import (
     CONF_ID,
     CONF_OUTPUT_ID,
     CONF_TYPE,
+    CONF_GAMMA_CORRECT,
 )
 from . import (
     hack_pack_nixie_clock_ns,
@@ -24,10 +25,21 @@ LIGHT_TYPES = {
     "underglow": LightType.UNDERGLOW,
 }
 
+# We default gamma_correct to 0.0 (disabled in ESPHome's light component layer) because the
+# Hack Pack Nixie Clock C++ rendering engine applies a unified 256-entry Perceptual Gamma 2.4
+# curve (GAMMA8_TABLE) directly during WS2812 hardware transmission.
+#
+# If ESPHome's default gamma of 2.8 remained active:
+# 1. Solid colors from the color picker would be double-gamma corrected (crushing midtones).
+# 2. Built-in hardware animations (Rainbow, Flow, etc.) would bypass ESPHome's gamma entirely.
+#
+# Setting gamma_correct=0.0 ensures linear RGB ingestion so that our perceptual gamma curve
+# scales solid colors, custom colors, and all animation modes identically and smoothly.
 CONFIG_SCHEMA = light.RGB_LIGHT_SCHEMA.extend({
     cv.GenerateID(CONF_OUTPUT_ID): cv.declare_id(HackPackNixieLightOutput),
     cv.GenerateID(CONF_HACK_PACK_NIXIE_CLOCK_ID): cv.use_id(HackPackNixieClock),
     cv.Required(CONF_TYPE): cv.enum(LIGHT_TYPES, lower=True),
+    cv.Optional(CONF_GAMMA_CORRECT, default=0.0): cv.positive_float,
 })
 
 
@@ -36,11 +48,12 @@ async def to_code(config):
     await light.register_light(var, config)
 
     parent = await cg.get_variable(config[CONF_HACK_PACK_NIXIE_CLOCK_ID])
+    light_var = await cg.get_variable(config[CONF_ID])
     cg.add(var.set_parent(parent))
     cg.add(var.set_light_type(config[CONF_TYPE]))
+    cg.add(parent.register_light(config[CONF_TYPE], light_var))
 
     if config[CONF_TYPE] == "panel":
-        light_var = await cg.get_variable(config[CONF_ID])
         effects = []
         for name, mode in [
             ("Rainbow", ColorModeEnum.COLOR_RAINBOW),

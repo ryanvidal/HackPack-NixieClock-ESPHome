@@ -34,8 +34,8 @@ api:
         scroll_speed_ms: int
       then:
         - hack_pack_nixie_clock.display_text:
-            message: !lambda 'return message;'
-            scroll_speed_ms: !lambda 'return (scroll_speed_ms > 0) ? (uint32_t)scroll_speed_ms : 350;'
+            message: !lambda "return message;"
+            scroll_speed_ms: !lambda "return (scroll_speed_ms > 0) ? (uint32_t)scroll_speed_ms : 350;"
 
     - action: trigger_face_animation
       then:
@@ -46,7 +46,7 @@ api:
         duration_ms: int
       then:
         - hack_pack_nixie_clock.trigger_slot_machine:
-            duration_ms: !lambda 'return (duration_ms > 0) ? (uint32_t)duration_ms : 2500;'
+            duration_ms: !lambda "return (duration_ms > 0) ? (uint32_t)duration_ms : 2500;"
 
     - action: play_sound
       then:
@@ -57,7 +57,7 @@ api:
         duration: string
       then:
         - hack_pack_nixie_clock.start_timer:
-            duration: !lambda 'return duration;'
+            duration: !lambda "return duration;"
 
 ota:
   - platform: esphome
@@ -66,8 +66,7 @@ ota:
         - hack_pack_nixie_clock.set_display_mode:
             mode: "OFF"
         - lambda: |-
-            id(clock_hub).set_panel_brightness(0);
-            id(clock_hub).set_underglow_brightness(25);
+            id(clock_hub).set_ready_for_ota();
 
 time:
   - platform: homeassistant

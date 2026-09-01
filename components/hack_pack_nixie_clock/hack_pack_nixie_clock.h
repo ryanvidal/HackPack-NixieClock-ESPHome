@@ -147,18 +147,6 @@ struct ButtonState {
 };
 
 struct NixieClockStorage {
-  uint8_t panel_brightness{255};
-  uint8_t underglow_brightness{255};
-  uint8_t panel_color_pos{200};
-  uint8_t underglow_color_pos{200};
-  bool use_panel_custom_rgb{false};
-  uint8_t custom_r{255};
-  uint8_t custom_g{140};
-  uint8_t custom_b{0};
-  bool use_ug_custom_rgb{false};
-  uint8_t ug_custom_r{255};
-  uint8_t ug_custom_g{140};
-  uint8_t ug_custom_b{0};
   bool hr24_mode{false};
   bool show_lead_zero{false};
   bool colon_blinking{false};
@@ -169,10 +157,21 @@ struct NixieClockStorage {
   bool alarm_enabled{false};
   uint8_t alarm_hour{7};
   uint8_t alarm_minute{0};
-  uint8_t color_mode{0};
   uint8_t colon_mode{0};
   uint32_t timer_duration_sec{300};
 } __attribute__((packed));
+
+class HackPackNixieClock;
+
+class HackPackNixieLightListener : public light::LightRemoteValuesListener {
+ public:
+  HackPackNixieLightListener(HackPackNixieClock *parent, LightType type) : parent_(parent), type_(type) {}
+  void on_light_remote_values_update() override;
+
+ protected:
+  HackPackNixieClock *parent_{nullptr};
+  LightType type_{LightType::PANEL};
+};
 
 class HackPackNixieClock : public Component {
  public:
@@ -198,6 +197,7 @@ class HackPackNixieClock : public Component {
   void loop() override;
   void dump_config() override;
   float get_setup_priority() const override { return setup_priority::HARDWARE; }
+  void set_ready_for_ota();
 
   // Public Controls & Actions
   void set_display_mode(DisplayMode mode);
@@ -278,6 +278,11 @@ class HackPackNixieClock : public Component {
   const char* get_current_display_text() const { return current_display_chars_; }
 
   // Entity Registrations & Pointers
+  void register_light(LightType type, light::LightState *st);
+  bool is_syncing_light() const { return syncing_light_; }
+  void set_syncing_light(bool s) { syncing_light_ = s; }
+  light::LightState *get_panel_light() const { return panel_light_; }
+  light::LightState *get_underglow_light() const { return underglow_light_; }
 #ifdef USE_SWITCH
   void register_switch(SwitchType type, switch_::Switch *sw);
 #endif
@@ -432,6 +437,12 @@ class HackPackNixieClock : public Component {
   uint32_t now_col1_{0}, now_col2_{0};
 
   // Entity Pointers
+  light::LightState *panel_light_{nullptr};
+  light::LightState *underglow_light_{nullptr};
+  HackPackNixieLightListener panel_listener_{this, LightType::PANEL};
+  HackPackNixieLightListener underglow_listener_{this, LightType::UNDERGLOW};
+  bool syncing_light_{false};
+
 #ifdef USE_SWITCH
   switch_::Switch *sw_format_24hr_{nullptr};
   switch_::Switch *sw_leading_zero_{nullptr};
