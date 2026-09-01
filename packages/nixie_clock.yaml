@@ -22,6 +22,8 @@ esp32:
   variant: esp32c3
   framework:
     type: esp-idf
+    sdkconfig_options:
+      CONFIG_ESP_BROWNOUT_DET_LVL_SEL_0: y
 
 logger:
   level: INFO
@@ -65,6 +67,10 @@ ota:
       then:
         - hack_pack_nixie_clock.set_display_mode:
             mode: "OFF"
+        - lambda: |-
+            id(clock_hub).set_ready_for_ota();
+    on_end:
+      then:
         - lambda: |-
             id(clock_hub).set_ready_for_ota();
 

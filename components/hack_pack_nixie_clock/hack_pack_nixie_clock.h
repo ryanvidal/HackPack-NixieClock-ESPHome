@@ -505,6 +505,8 @@ class HackPackNixieClock : public Component {
 
   void update_display_state_();
   void update_underglow_();
+  void update_colons_(uint32_t base_ug);
+  void update_ampm_indicators_(const ESPTime &now_time);
   void render_hardware_leds_();
 
   uint32_t average_panel_color_(int panelIndex) const;
