@@ -61,9 +61,6 @@ void HackPackNixieButton::press_action() {
 void HackPackNixieSelect::setup() {
   if (!parent_) return;
   switch (type_) {
-    case SelectType::DISPLAY_MODE:
-      publish_state("Time");
-      break;
     case SelectType::COLON_COLOR_MODE: {
       ColonMode cm = parent_->get_colon_mode();
       switch (cm) {
@@ -79,16 +76,6 @@ void HackPackNixieSelect::setup() {
 void HackPackNixieSelect::control(const std::string &value) {
   if (!parent_) return;
   switch (type_) {
-    case SelectType::DISPLAY_MODE:
-      if (value == "Time") parent_->set_display_mode(MODE_TIME);
-      else if (value == "Timer") parent_->set_display_mode(MODE_TIMER);
-      else if (value == "Alarm View") parent_->set_display_mode(MODE_ALARM);
-      else if (value == "Slot Machine") parent_->trigger_slot_machine(2500);
-      else if (value == "Faces") parent_->trigger_face_animation();
-      else if (value == "Custom Text") parent_->set_display_mode(MODE_CUSTOM_TEXT);
-      else if (value == "Off") parent_->set_display_mode(MODE_OFF);
-      break;
-
     case SelectType::COLON_COLOR_MODE:
       if (value == "Auto Blend") parent_->set_colon_mode(COLON_AUTO_BLEND);
       else if (value == "Match Underglow") parent_->set_colon_mode(COLON_MATCH_UNDERGLOW);
