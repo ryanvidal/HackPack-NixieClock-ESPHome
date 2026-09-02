@@ -5,95 +5,147 @@
 [![Framework](https://img.shields.io/badge/Framework-ESP--IDF-green.svg)](https://esphome.io/components/esp32.html)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-An ESPHome custom component for the **CrunchLabs Hack Pack Box 15 (Smart Nixie Clock)** based on the **ESP32-C3 Mini**. 
+An ESPHome custom component for the **CrunchLabs Hack Pack Box 15 (Smart Nixie Clock)** powered by the **ESP32-C3 Mini**. 
 
-This integration provides a feature-complete **Home Assistant** integration while preserving and enhancing all animations, underglow effects, 7-segment character glyphs, timers, alarms, audio module controls, and physical button navigation.
+This integration provides a feature-complete **Home Assistant** integration while preserving and enhancing all animations, underglow effects, 7-segment character glyphs, timers, alarms, audio recording module controls, and physical button navigation.
+
+<p align="center">
+  <img src="assets/ha_nixie-clock-device.png" alt="Home Assistant Nixie Clock Device Overview" width="700">
+</p>
 
 ---
 
-## Features
+## ✨ Features
 
 - 💾 **Non-Volatile Flash Persistence**: Restores all state, colors, brightness, format modes, alarms, button lock, and timer duration automatically across power cycles using ESPHome NVS Preferences.
 - 🕒 **Native Time & Date Synchronization**: Automatically keeps accurate time synced from Home Assistant / NTP with 12-hour and 24-hour modes.
-- 🎨 **Native RGB Color Pickers**: Full Home Assistant color wheel support for both the Nixie tube panel and underglow LEDs via native `light` entities with brightness sliders and built-in animation effects.
-- 🌈 **7 Color Animation Modes**: `Rainbow`, `Solid`, `Gradient`, `Flow`, `Wipe`, `Pulse`, and `Bounce`.
+- 🎨 **Native RGB Color Pickers & Effects**: Full Home Assistant color wheel support for both the Nixie tube panel and underglow LEDs via native `light` entities with brightness sliders and built-in animation effects (**Rainbow**, **Gradient**, **Flow**, **Wipe**, **Pulse**, **Bounce**, **Solid**).
 - 🔗 **Optical 80% Brightness Linking**: Synchronizes tube panel and underglow brightness levels using a calibrated 80% ratio to match lumens behind the acrylic darkening film.
 - 💡 **Dynamic Underglow & Colons**: Underglow color control, AM/PM indicators, colon blinking, and automatic inter-panel color blending. Colons automatically turn completely off during message displays.
-- ⏰ **Smart Alarm & Countdown Timers**: Native Home Assistant time-picker widget for alarm and idiomatic `HH:MM:SS` duration picker for countdown timers with live formatted `"HH:MM:SS"` sensors and audio beeper notifications.
-- 🎙️ **Voice Speaker Media Player**: Exposes the onboard sound recorder module with record/playback triggers.
-- 🕹️ **Local Physical Buttons**: Full button debouncing and hardware navigation preserved, with the ability to lock/disable buttons from Home Assistant.
-- 🚀 **Flicker-Free IRAM Driver**: Custom cycle-accurate WS2812 bit-banging engine running in internal RAM (`IRAM_ATTR`) with Perceptual Gamma 2.4 curve table, eliminating FreeRTOS/WiFi single-core preemption and digit flickering.
-- 💬 **Multi-Phase Alert & Scrolling Text Service**: Attention-grabbing message board sequence: 1s blank $\rightarrow$ 2s flashing `"- - - "` alert strobe $\rightarrow$ smooth right-to-left scrolling $\rightarrow$ 1s trailing blank $\rightarrow$ return to clock.
+- ⏰ **Smart Alarm & Countdown Timers**: Native Home Assistant time-picker widget for alarm scheduling and natural language duration input (`"5m"`, `"1h 30m"`, `"45s"`) for countdown timers with live formatted `"HH:MM:SS"` sensors, physical button hold/repeat adjustments, and buzzer alerts.
+- 🎙️ **Audio Recording & Playback**: Trigger recorded sound playback on demand or record new audio messages directly from Home Assistant.
+- 🕹️ **Local Physical Buttons**: Full button debouncing, long-press actions, 100ms auto-repeat, and hardware navigation preserved, with the ability to lock/disable buttons from Home Assistant.
+- 🚀 **Flicker-Free IRAM Driver**: Custom cycle-accurate WS2812 bit-banging engine running in internal RAM (`IRAM_ATTR`) with Perceptual Gamma 2.4 curve table, eliminating FreeRTOS/Wi-Fi single-core preemption and digit flickering.
+- 💬 **Multi-Phase Alert & Scrolling Text Service**: Attention-grabbing message board sequence: 1s blank $\rightarrow$ 2s flashing `"- - - "` alert strobe $\rightarrow$ smooth right-to-left scrolling $\rightarrow$ 1s trailing blank $\rightarrow$ return to previous display mode.
+- 🛡️ **OTA Brownout Protection**: Automatic LED blackout and Wi-Fi transmission power throttling (13 dBm) during Over-The-Air firmware updates to prevent voltage sags and boot loops.
+
+<p align="center">
+  <img src="assets/ha_lighting_controls.png" alt="Home Assistant Light & Effects Controls" width="450">
+</p>
 
 ---
 
-## Repository Structure
+## 📁 Repository Structure
 
 ```text
 hack-pack-nixie-clock/
+├── assets/                            # Documentation screenshots & media
+│   ├── ha_nixie-clock-device.png
+│   ├── ha_lighting_controls.png
+│   ├── ha_clock-display_subdevice.png
+│   ├── ha_alarm-clock_subdevice.png
+│   ├── ha_countdown-timer_subdevice.png
+│   ├── ha_audio-controls_subdevice.png
+│   └── ha_developer-tools_display-text.png
 ├── components/
 │   └── hack_pack_nixie_clock/
-│       ├── __init__.py          # Component schema, actions & setup
-│       ├── types.h              # Enums, structs & NVS storage schema
-│       ├── font_map.h           # 7-segment character lookup tables
-│       ├── hardware_leds.h/.cpp # WS2812 IRAM driver & Gamma 2.4 table
-│       ├── light_output.h/.cpp  # RGB LightOutput, LightEffects & Listener
-│       ├── entities.h/.cpp      # Switch, Button, Select, Number, Text, Time entities
-│       ├── automation.h         # ESPHome action template classes
+│       ├── __init__.py                # Component schema, actions & setup
+│       ├── types.h                    # Enums, structs & NVS storage schema
+│       ├── font_map.h                 # 7-segment character lookup tables
+│       ├── hardware_leds.h/.cpp       # WS2812 IRAM driver & Gamma 2.4 table
+│       ├── light_output.h/.cpp        # RGB LightOutput, LightEffects & Listener
+│       ├── entities.h/.cpp            # Switch, Button, Select, Text, Time entities
+│       ├── automation.h               # ESPHome action template classes
+│       ├── color_animations.h/.cpp       # Strategy pattern color engines
 │       ├── hack_pack_nixie_clock.h
 │       └── hack_pack_nixie_clock.cpp
 ├── packages/
-│   ├── nixie_clock.yaml               # Drop-in package organized with subdevices
+│   ├── nixie_clock.yaml               # Drop-in package organized into 4 subdevices
 │   └── nixie_clock_single_device.yaml # Drop-in package unified into a single device
 ├── examples/
 │   ├── nixie_clock_basic.yaml         # Basic example using subdevices package
 │   ├── nixie_clock_single_device.yaml # Basic example using single-device package
-│   └── nixie_clock_advanced.yaml      # Advanced example with explicit sub-platform entities
+│   └── nixie_clock_advanced.yaml      # Advanced example with explicit entity overrides
 └── README.md
 ```
 
 ---
 
-## Quickstart
+## 🚀 Quickstart
 
-Add this repository to your ESPHome configuration using `external_components`:
+Setting up your clock takes only a few lines of YAML. Choose between the **Subdevices Package** (organizes entities into 4 distinct functional devices in Home Assistant) or the **Single Device Package** (combines all entities into 1 unified device).
+
+### Option 1: Remote GitHub Import (Recommended)
+
+Add this directly to your ESPHome configuration on Home Assistant:
 
 ```yaml
+# ==============================================================================
+# Hack Pack Nixie Clock (Box 15)
+# ==============================================================================
+packages:
+  # Choose one package:
+  # A) Subdevices Package (4 functional devices):
+  hack_pack_nixie_clock:
+    url: https://github.com/ryanvidal/HackPack-NixieClock-ESPHome
+    ref: hack_pack_nixie_clock-v1.1.0
+    files: [packages/nixie_clock.yaml]
+
+  # B) Single-Device Package (1 unified device):
+  # hack_pack_nixie_clock:
+  #   url: https://github.com/ryanvidal/HackPack-NixieClock-ESPHome
+  #   ref: hack_pack_nixie_clock-v1.1.0
+  #   files: [packages/nixie_clock_single_device.yaml]
+
 external_components:
-  - source: github://ryanvidal/HackPack-NixieClockESPHome
-    components: [ hack_pack_nixie_clock ]
+  - source: github://ryanvidal/HackPack-NixieClock-ESPHome@hack_pack_nixie_clock-v1.1.0
+    components: [hack_pack_nixie_clock]
 
-time:
-  - platform: homeassistant
-    id: homeassistant_time
+api:
+  encryption:
+    key: !secret api_encryption_key
 
-# All pins automatically default to the stock Hack Pack Box 15 hardware!
-hack_pack_nixie_clock:
-  id: clock_hub
-  time_id: homeassistant_time
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: Hack Pack Nixie Fallback Hotspot
 
-# Native Color Pickers & Media Player
-light:
-  - platform: hack_pack_nixie_clock
-    type: panel
-    name: "Nixie Tube Lighting"
-    id: light_panel
-  - platform: hack_pack_nixie_clock
-    type: underglow
-    name: "Underglow Lighting"
-    id: light_underglow
+captive_portal:
+```
 
-media_player:
-  - platform: hack_pack_nixie_clock
-    name: "Voice Speaker"
-    id: nixie_speaker
+### Option 2: Cloned Repository (Local Development)
+
+If you clone this repository directly into your ESPHome directory:
+
+```yaml
+packages:
+  hack_pack_nixie_clock: !include packages/nixie_clock.yaml
+
+external_components:
+  - source:
+      type: local
+      path: components
+    components: [hack_pack_nixie_clock]
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: Hack Pack Nixie Fallback Hotspot
+
+captive_portal:
 ```
 
 ---
 
-## Hardware Pin Mapping (Hack Pack Box 15 Defaults)
+## 🔌 Hardware Pin Mapping (Hack Pack Box 15 Defaults)
 
-Every pin is configured to the stock hardware by default, but can be overridden in YAML for custom hardware:
+All pins default automatically to the CrunchLabs Hack Pack Box 15 hardware:
 
 | Pin Name in YAML | Default GPIO | Function |
 | :--- | :--- | :--- |
@@ -101,72 +153,98 @@ Every pin is configured to the stock hardware by default, but can be overridden 
 | `underglow_pin` | `GPIO1` | 13 WS2812 LEDs (2 Colons, 8 Badge, 1 Alarm, 1 AM, 1 PM) |
 | `play_pin` | `GPIO5` | Voice module trigger output |
 | `rec_pin` | `GPIO4` | Voice module record output |
-| `btn_top_pin` | `GPIO19` | Top Snooze / Stop button (Active LOW) |
-| `btn_center_pin` | `GPIO10` | D-pad Center button (Active LOW) |
-| `btn_up_pin` | `GPIO9` | D-pad Up button (Active LOW) |
-| `btn_down_pin` | `GPIO8` | D-pad Down button (Active LOW) |
-| `btn_left_pin` | `GPIO7` | D-pad Left button (Active LOW) |
-| `btn_right_pin` | `GPIO6` | D-pad Right button (Active LOW) |
+| `btn_top_pin` | `GPIO19` | Top button (Snooze / Toggle Timer / Dismiss) (Active LOW) |
+| `btn_center_pin` | `GPIO10` | D-pad Center button (Mode Cycle) (Active LOW) |
+| `btn_up_pin` | `GPIO9` | D-pad Up button (Brightness / Value +) (Active LOW) |
+| `btn_down_pin` | `GPIO8` | D-pad Down button (Brightness / Value -) (Active LOW) |
+| `btn_left_pin` | `GPIO7` | D-pad Left button (Color / Adjust Left) (Active LOW) |
+| `btn_right_pin` | `GPIO6` | D-pad Right button (Color / Adjust Right) (Active LOW) |
 
 ---
 
-## Home Assistant Entities & Categories
+## 📱 Home Assistant Entities & Subdevices
 
-Entities are categorized cleanly into standard Home Assistant sections (**Controls**, **Configuration**, and **Diagnostic**):
+When using `packages/nixie_clock.yaml`, entities are organized into **4 functional subdevices**:
 
-### 🎮 Primary Controls
+### 1. 🖥️ Nixie Clock Display (`dev_clock`)
 
-| Domain | Entity Name | Description |
-| :--- | :--- | :--- |
-| **Light** | `Nixie Tube Lighting` | Full RGB color wheel, brightness slider, and animation effects dropdown. |
-| **Light** | `Underglow Lighting` | Full RGB color wheel and brightness slider for underglow. |
-| **Media Player** | `Voice Speaker` | Native media player entity with Play/Stop actions for sound module. |
-| **DateTime** | `Alarm Time` | Native time picker widget to set alarm time (`HH:MM:SS`). |
-| **DateTime** | `Timer Duration` | Idiomatic duration picker widget to set countdown duration (`HH:MM:SS`). |
-| **Select** | `Display Mode` | Selects: `Time`, `Timer`, `Alarm View`, `Slot Machine`, `Faces`, `Custom Text`, `Off`. |
-| **Select** | `Color Animation Mode` | Selects: `Rainbow`, `Solid`, `Gradient`, `Flow`, `Wipe`, `Pulse`, `Bounce`. |
-| **Select** | `Colon Color Mode` | Selects: `Auto Blend`, `Match Underglow`, `Fixed`. |
-| **Switch** | `Alarm Enabled` | Arms or disarms the alarm. |
-| **Button** | `Start Countdown Timer` | Starts countdown timer using configured duration. |
-| **Button** | `Stop Countdown Timer` | Cancels active countdown timer. |
-| **Button** | `Arm Alarm` / `Disarm Alarm` | Arms or disarms the alarm. |
-| **Button** | `Stop Ringing Alarm` | Silences an active alarm beeper. |
-| **Button** | `Trigger Face Animation` | Runs face animation sequence on demand. |
-| **Button** | `Cathode Cleaning (Slot Machine)` | Runs cathode rejuvenation effect on demand. |
-| **Button** | `Play Audio Recording` | Pulses `GPIO 5` to play recorded voice message. |
-
-### ⚙️ Configuration (`entity_category: config`)
+<p align="center">
+  <img src="assets/ha_clock-display_subdevice.png" alt="Nixie Clock Display Subdevice" width="500">
+</p>
 
 | Domain | Entity Name | Description |
 | :--- | :--- | :--- |
+| **Light** | `Nixie Tube Lighting` | Full RGB color picker, brightness slider, and animation effects. |
+| **Light** | `Underglow Lighting` | Full RGB color picker, brightness slider, and animation effects. |
 | **Switch** | `Link Panel & Underglow Brightness` | Synchronizes panel and underglow brightness levels. |
 | **Switch** | `24-Hour Format` | Toggles 12-hour vs 24-hour time format. |
 | **Switch** | `Leading Zero` | Toggles leading zero on single-digit hours (`" 9:00"` vs `"09:00"`). |
 | **Switch** | `Colon Blinking` | Enables/disables 1Hz blinking colons. |
 | **Switch** | `AM⁄PM Indicators` | Enables/disables amber AM and purple PM LEDs. |
-| **Switch** | `Periodic Face Animations` | Enables/disables automatic periodic face animations. |
-| **Switch** | `Physical Buttons Enabled` | Enables or locks local button inputs. |
-| **Switch** | `Record Sound (Hold)` | Holds `GPIO 4` high to record audio message. |
-
-### 📊 Status & Diagnostic (`entity_category: diagnostic`)
-
-| Domain | Entity Name | Description |
-| :--- | :--- | :--- |
-| **Sensor** | `Timer Remaining Seconds` | Numeric countdown timer seconds. |
-| **Text Sensor** | `Timer Remaining` | Live formatted `"HH:MM:SS"` countdown string. |
-| **Text Sensor** | `Active Display Characters` | Live 6-character string illuminated on the tubes. |
-| **Binary Sensor** | `Alarm Ringing` | `ON` when the alarm is actively beeping. |
-| **Binary Sensor** | `Timer Running` | `ON` when countdown timer is active. |
-| **Binary Sensor** | `Timer Ringing` | `ON` when timer has reached zero and is beeping. |
+| **Switch** | `Periodic Face Animations` | Enables/disables automatic periodic character face animations. |
+| **Switch** | `Physical Buttons Enabled` | Enables or locks local hardware button inputs. |
+| **Select** | `Colon Color Mode` | Selects: `Auto Blend`, `Match Underglow`, or `Fixed`. |
+| **Button** | `Trigger Face Animation` | Triggers a character face sequence on demand. |
+| **Button** | `Cathode Cleaning (Slot Machine)` | Runs cathode rejuvenation effect on demand. |
+| **Text Sensor** | `Integration Version` | Diagnostic sensor reporting the active integration release version. |
 
 ---
 
-## Home Assistant Actions / Services
+### 2. ⏰ Nixie Clock Alarm Clock (`dev_alarm`)
+
+<p align="center">
+  <img src="assets/ha_alarm-clock_subdevice.png" alt="Nixie Clock Alarm Clock Subdevice" width="500">
+</p>
+
+| Domain | Entity Name | Description |
+| :--- | :--- | :--- |
+| **DateTime** | `Alarm Time` | Native time picker widget to set alarm time (`HH:MM:SS`). |
+| **Switch** | `Alarm Enabled` | Arms or disarms the alarm. |
+| **Button** | `Stop Ringing Alarm` | Silences an active ringing alarm. |
+| **Binary Sensor** | `Alarm Ringing` | `ON` when the alarm is actively beeping. |
+
+---
+
+### 3. ⏳ Nixie Clock Countdown Timer (`dev_timer`)
+
+<p align="center">
+  <img src="assets/ha_countdown-timer_subdevice.png" alt="Nixie Clock Countdown Timer Subdevice" width="500">
+</p>
+
+| Domain | Entity Name | Description |
+| :--- | :--- | :--- |
+| **Text** | `Timer Duration` | Text input supporting natural duration strings (`"5m"`, `"1h 30m"`, `"45s"`). |
+| **Switch** | `Timer Running` | Starts, pauses, or resumes the countdown timer. |
+| **Button** | `Reset Countdown Timer` | Resets the timer back to its configured duration. |
+| **Text Sensor** | `Timer Remaining` | Live formatted `"HH:MM:SS"` countdown string. |
+| **Binary Sensor** | `Timer Ringing` | `ON` when the timer reaches zero and is sounding the beeper. |
+
+---
+
+### 4. 🎙️ Nixie Clock Audio Controls (`dev_audio`)
+
+<p align="center">
+  <img src="assets/ha_audio-controls_subdevice.png" alt="Nixie Clock Audio Controls Subdevice" width="500">
+</p>
+
+| Domain | Entity Name | Description |
+| :--- | :--- | :--- |
+| **Button** | `Play Audio Recording` | Pulses `GPIO5` to play the recorded voice message. |
+| **Switch** | `Record Sound (Hold)` | Holds `GPIO4` high while active to record a voice message. |
+
+---
+
+## 🛠️ Home Assistant Actions & Automation Services
 
 You can trigger custom actions on the clock from Home Assistant scripts and automations:
 
 ### 1. Display Alert & Scrolling Custom Text
-Displays a 1s blank screen $\rightarrow$ 2s flashing `"!!!!!!"` alert strobe $\rightarrow$ smooth text scroll $\rightarrow$ 1s blank screen $\rightarrow$ returns to previous mode:
+Displays a 1s blank screen $\rightarrow$ 2s flashing `"- - - "` alert strobe $\rightarrow$ smooth text scroll $\rightarrow$ 1s blank screen $\rightarrow$ returns to previous display mode:
+
+<p align="center">
+  <img src="assets/ha_developer-tools_display-text.png" alt="Developer Tools display_text Action" width="600">
+</p>
+
 ```yaml
 action: esphome.hack_pack_nixie_clock_display_text
 data:
@@ -182,13 +260,13 @@ data:
   duration: "10m"
 ```
 
-### 3. Show Time (Clock View)
-Switches the Nixie tube display mode to standard real-time clock view:
+### 3. Switch Display to Clock View
+Switches the Nixie tube display mode to the real-time clock view:
 ```yaml
 action: esphome.hack_pack_nixie_clock_show_time
 ```
 
-### 4. Show Timer (Timer View)
+### 4. Switch Display to Timer View
 Switches the Nixie tube display mode to the countdown timer view:
 ```yaml
 action: esphome.hack_pack_nixie_clock_show_timer
@@ -216,79 +294,6 @@ action: esphome.hack_pack_nixie_clock_play_sound
 
 ---
 
-## Recommended Home Assistant Dashboard Card Layout
-
-Below is a clean Lovelace dashboard card layout organizing all controls into logical sections:
-
-```yaml
-type: vertical-stack
-cards:
-  # --------------------------------------------------------------------------
-  # Section: Lighting & Color Pickers
-  # --------------------------------------------------------------------------
-  - type: entities
-    title: 🎨 Nixie Lighting & Colors
-    show_header_toggle: false
-    entities:
-      - entity: light.hack_pack_nixie_clock_nixie_tube_lighting
-        name: Nixie Tubes
-      - entity: light.hack_pack_nixie_clock_underglow_lighting
-        name: Underglow
-      - entity: select.hack_pack_nixie_clock_color_animation_mode
-        name: Animation Effect
-      - entity: select.hack_pack_nixie_clock_colon_color_mode
-        name: Colon Mode
-      - entity: switch.hack_pack_nixie_clock_link_panel_underglow_brightness
-        name: Link Brightness
-
-  # --------------------------------------------------------------------------
-  # Section: Alarm & Countdown Timer
-  # --------------------------------------------------------------------------
-  - type: entities
-    title: ⏰ Alarm & Timer
-    show_header_toggle: false
-    entities:
-      - entity: datetime.hack_pack_nixie_clock_alarm_time
-        name: Alarm Time
-      - entity: switch.hack_pack_nixie_clock_alarm_enabled
-        name: Alarm Armed
-      - entity: text.hack_pack_nixie_clock_timer_duration
-        name: Timer Duration
-      - entity: switch.hack_pack_nixie_clock_timer_running
-        name: Timer Running
-      - entity: sensor.hack_pack_nixie_clock_timer_remaining
-        name: Timer Countdown
-      - entity: button.hack_pack_nixie_clock_reset_countdown_timer
-        name: Reset Timer
-
-  # --------------------------------------------------------------------------
-  # Section: Voice Module & Fun Effects
-  # --------------------------------------------------------------------------
-  - type: media-control
-    entity: media_player.hack_pack_nixie_clock_voice_speaker
-
-  - type: horizontal-stack
-    cards:
-      - type: button
-        name: Faces
-        icon: mdi:emoticon-wink-outline
-        tap_action:
-          action: call-service
-          service: button.press
-          target:
-            entity_id: button.hack_pack_nixie_clock_trigger_face_animation
-      - type: button
-        name: Cathode Clean
-        icon: mdi:slot-machine
-        tap_action:
-          action: call-service
-          service: button.press
-          target:
-            entity_id: button.hack_pack_nixie_clock_cathode_cleaning_slot_machine
-```
-
----
-
 ## ⚡ Power Management & OTA Update Brownout Protection
 
 ### The Brownout Phenomenon During OTA
@@ -300,7 +305,7 @@ During an **Over-The-Air (OTA) firmware update**, high-throughput Wi-Fi receptio
 3. The OTA update fails midway or connection is lost.
 
 ### Built-in Firmware Mitigations
-This integration includes multi-layered protections configured out of the box in [`packages/nixie_clock.yaml`](packages/nixie_clock.yaml):
+This integration includes multi-layered protections configured out of the box in both [`packages/nixie_clock.yaml`](packages/nixie_clock.yaml) and [`packages/nixie_clock_single_device.yaml`](packages/nixie_clock_single_device.yaml):
 
 1. **Automatic Pre-Flight Blackout Hook (`set_ready_for_ota()`)**:
    When an OTA update begins, the component's `ota: on_begin` trigger automatically zeroes out all 55 LEDs and disables the display, reducing current draw to near zero before writing flash sectors.
@@ -317,6 +322,6 @@ This integration includes multi-layered protections configured out of the box in
 
 ---
 
-## License
+## 📜 License
 
 MIT License - feel free to use and adapt for your own smart home projects!
