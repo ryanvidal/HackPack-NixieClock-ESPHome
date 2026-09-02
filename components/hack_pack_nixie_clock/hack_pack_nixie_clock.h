@@ -19,6 +19,7 @@
 #include <string>
 
 #ifndef HACK_PACK_NIXIE_CLOCK_VERSION
+// x-release-please-version
 #define HACK_PACK_NIXIE_CLOCK_VERSION "1.0.0"
 #endif
 

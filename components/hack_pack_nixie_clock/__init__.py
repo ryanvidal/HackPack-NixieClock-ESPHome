@@ -10,6 +10,7 @@ from esphome.const import (
     CONF_TIME_ID,
 )
 
+# x-release-please-version
 __version__ = "1.0.0"
 
 # Component namespace
