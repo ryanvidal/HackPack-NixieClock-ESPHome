@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/ryanvidal/HackPack-NixieClock-ESPHome/compare/hack_pack_nixie_clock-v1.1.0...hack_pack_nixie_clock-v1.2.0) (2026-09-02)
+
+
+### Features
+
+* **package:** add single-device package option and streamline subdevice groupings ([9717010](https://github.com/ryanvidal/HackPack-NixieClock-ESPHome/commit/97170107782f8716de4ab6d54b27dad1d6afa387))
+
 ## [1.1.0](https://github.com/ryanvidal/HackPack-NixieClock-ESPHome/compare/hack_pack_nixie_clock-v1.0.0...hack_pack_nixie_clock-v1.1.0) (2026-09-02)
 
 
