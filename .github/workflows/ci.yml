@@ -2,13 +2,46 @@ name: ESPHome CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
-  validate:
+  lint:
+    name: Lint & Style
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Linters
+        run: |
+          pip install ruff
+          sudo apt-get update && sudo apt-get install -y clang-format
+
+      - name: Check Python Code
+        run: ruff check components/
+
+      - name: Check C++ Formatting
+        run: |
+          # Matches all C++ and header files inside components/
+          find components/ -type f \( -name "*.cpp" -o -name "*.h" \) -print0 | xargs -0 --no-run-if-empty clang-format --dry-run --Werror
+
+  build:
+    name: Build (${{ matrix.example }})
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        example:
+          - examples/nixie_clock_basic.yaml
+          - examples/nixie_clock_advanced.yaml
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -16,11 +49,21 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
+
+      - name: Restore PlatformIO Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            .esphome
+          key: ${{ runner.os }}-pio-${{ matrix.example }}-${{ hashFiles(matrix.example) }}
+          restore-keys: |
+            ${{ runner.os }}-pio-${{ matrix.example }}-
+            ${{ runner.os }}-pio-
 
       - name: Install ESPHome
-        run: |
-          pip install esphome
+        run: pip install esphome
 
       - name: Create mock secrets for CI
         run: |
@@ -29,10 +72,8 @@ jobs:
           wifi_password: "MockPassword123"
           EOF
 
-      - name: Compile Basic Example
-        run: |
-          esphome compile examples/nixie_clock_basic.yaml
+      - name: Validate Config Schema
+        run: esphome config ${{ matrix.example }}
 
-      - name: Compile Advanced Example
-        run: |
-          esphome compile examples/nixie_clock_advanced.yaml
+      - name: Compile Example
+        run: esphome compile ${{ matrix.example }}
