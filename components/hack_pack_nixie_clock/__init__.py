@@ -10,7 +10,7 @@ from esphome.const import (
     CONF_TIME_ID,
 )
 
-__version__ = "1.0.0" # x-release-please-version
+__version__ = "1.1.0" # x-release-please-version
 
 # Component namespace
 hack_pack_nixie_clock_ns = cg.esphome_ns.namespace('hack_pack_nixie_clock')

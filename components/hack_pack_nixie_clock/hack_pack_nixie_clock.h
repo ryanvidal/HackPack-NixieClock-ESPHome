@@ -19,7 +19,7 @@
 #include <string>
 
 #ifndef HACK_PACK_NIXIE_CLOCK_VERSION
-#define HACK_PACK_NIXIE_CLOCK_VERSION "1.0.0" // x-release-please-version
+#define HACK_PACK_NIXIE_CLOCK_VERSION "1.1.0" // x-release-please-version
 #endif
 
 namespace esphome {
