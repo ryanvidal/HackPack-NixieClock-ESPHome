@@ -8,6 +8,7 @@
 #if defined(USE_ESP_IDF)
 #include "driver/gpio.h"
 #include "esp_rom_sys.h"
+#include "esp_wifi.h"
 #endif
 
 namespace esphome {
@@ -575,6 +576,13 @@ void HackPackNixieClock::set_ready_for_ota() {
   }
 
   render_hardware_leds_();
+
+#if defined(USE_ESP_IDF)
+  // Reduce WiFi output power to 13 dBm (52 in 0.25 dBm units) to mitigate current surges during flash writes
+  esp_wifi_set_max_tx_power(52);
+  ESP_LOGI(TAG, "WiFi output power reduced to 13 dBm for OTA power stabilization");
+#endif
+
   ESP_LOGI(TAG, "Hardware pre-flight complete: All LEDs darkened for OTA firmware write");
 }
 
