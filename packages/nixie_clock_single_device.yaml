@@ -1,20 +1,11 @@
 # ==============================================================================
-# ESPHome Package for Hack Pack Nixie Clock (Box 15)
-# Use this package to set up the entire clock with a single include!
+# ESPHome Single-Device Package for Hack Pack Nixie Clock (Box 15)
+# Use this package to set up the clock as a single unified Home Assistant device!
 # ==============================================================================
 
 esphome:
   name: hack-pack-nixie-clock
   friendly_name: Hack Pack Nixie Clock
-  devices:
-    - name: "Nixie Clock Display"
-      id: dev_clock
-    - name: "Nixie Clock Alarm Clock"
-      id: dev_alarm
-    - name: "Nixie Clock Countdown Timer"
-      id: dev_timer
-    - name: "Nixie Clock Audio Controls"
-      id: dev_audio
 
 esp32:
   variant: esp32c3
@@ -93,7 +84,6 @@ light:
     type: panel
     name: "Nixie Tube Lighting"
     id: light_panel
-    device_id: dev_clock
     icon: "mdi:led-strip"
     restore_mode: RESTORE_DEFAULT_ON
 
@@ -101,7 +91,6 @@ light:
     type: underglow
     name: "Underglow Lighting"
     id: light_underglow
-    device_id: dev_clock
     icon: "mdi:wall-sconce-flat"
     restore_mode: RESTORE_DEFAULT_ON
 
@@ -109,86 +98,64 @@ datetime:
   - platform: hack_pack_nixie_clock
     alarm_time:
       name: "Alarm Time"
-      device_id: dev_alarm
 
 text:
   - platform: hack_pack_nixie_clock
     timer_duration:
       name: "Timer Duration"
-      device_id: dev_timer
 
 switch:
   - platform: hack_pack_nixie_clock
     format_24hr:
       name: "24-Hour Format"
-      device_id: dev_clock
     leading_zero:
       name: "Leading Zero"
-      device_id: dev_clock
     colon_blinking:
       name: "Colon Blinking"
-      device_id: dev_clock
     am_pm_indicators:
       name: "AM⁄PM Indicators"
-      device_id: dev_clock
     periodic_faces:
       name: "Periodic Face Animations"
-      device_id: dev_clock
     physical_buttons:
       name: "Physical Buttons Enabled"
-      device_id: dev_clock
     link_brightness:
       name: "Link Panel & Underglow Brightness"
-      device_id: dev_clock
     alarm_enabled:
       name: "Alarm Enabled"
-      device_id: dev_alarm
     record_sound:
       name: "Record Sound (Hold)"
-      device_id: dev_audio
     timer_running:
       name: "Timer Running"
-      device_id: dev_timer
 
 select:
   - platform: hack_pack_nixie_clock
     colon_color_mode:
       name: "Colon Color Mode"
-      device_id: dev_clock
       entity_category: config
 
 button:
   - platform: hack_pack_nixie_clock
     reset_timer:
       name: "Reset Countdown Timer"
-      device_id: dev_timer
     stop_alarm:
       name: "Stop Ringing Alarm"
-      device_id: dev_alarm
     trigger_face:
       name: "Trigger Face Animation"
-      device_id: dev_clock
     trigger_slot_machine:
       name: "Cathode Cleaning (Slot Machine)"
-      device_id: dev_clock
     play_sound:
       name: "Play Audio Recording"
-      device_id: dev_audio
 
 text_sensor:
   - platform: hack_pack_nixie_clock
     timer_remaining:
       name: "Timer Remaining"
-      device_id: dev_timer
     version:
       name: "Integration Version"
-      device_id: dev_clock
 
 binary_sensor:
   - platform: hack_pack_nixie_clock
     alarm_ringing:
       name: "Alarm Ringing"
-      device_id: dev_alarm
     timer_ringing:
       name: "Timer Ringing"
-      device_id: dev_timer

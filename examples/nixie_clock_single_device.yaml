@@ -1,23 +1,23 @@
 # ==============================================================================
-# ESPHome Basic Configuration for Hack Pack Nixie Clock
+# ESPHome Single-Device Configuration for Hack Pack Nixie Clock
 # Board: Hack Pack ESP32-C3 Mini (Box 15)
 #
-# This basic example imports the complete pre-configured package.
-# Users only need to supply their Wi-Fi credentials and API encryption key.
+# This configuration imports the single-device package, unifying all clock,
+# lighting, alarm, timer, and audio entities into a single Home Assistant device.
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
-# 1. Import Reusable Package
+# 1. Import Single-Device Package
 # ------------------------------------------------------------------------------
 packages:
   # For local installations (cloned repository):
-  hack_pack_nixie_clock: !include ../packages/nixie_clock.yaml
+  hack_pack_nixie_clock: !include ../packages/nixie_clock_single_device.yaml
 
   # Or for direct remote GitHub imports:
   # hack_pack_nixie_clock:
   #   url: https://github.com/ryanvidal/HackPack-NixieClock-ESPHome
-  #   ref: main
-  #   files: [packages/nixie_clock.yaml]
+  #   ref: hack_pack_nixie_clock-v1.1.0
+  #   files: [packages/nixie_clock_single_device.yaml]
 
 # ------------------------------------------------------------------------------
 # 2. External Component Location
@@ -29,7 +29,7 @@ external_components:
     components: [hack_pack_nixie_clock]
 
   # Or for direct remote GitHub imports:
-  # - source: github://ryanvidal/HackPack-NixieClock-ESPHome@main
+  # - source: github://ryanvidal/HackPack-NixieClock-ESPHome@hack_pack_nixie_clock-v1.1.0
   #   components: [hack_pack_nixie_clock]
 
 # ------------------------------------------------------------------------------

@@ -43,10 +43,12 @@ hack-pack-nixie-clock/
 │       ├── hack_pack_nixie_clock.h
 │       └── hack_pack_nixie_clock.cpp
 ├── packages/
-│   └── nixie_clock.yaml         # Ready-to-use drop-in package
+│   ├── nixie_clock.yaml               # Drop-in package organized with subdevices
+│   └── nixie_clock_single_device.yaml # Drop-in package unified into a single device
 ├── examples/
-│   ├── nixie_clock_basic.yaml
-│   └── nixie_clock_advanced.yaml
+│   ├── nixie_clock_basic.yaml         # Basic example using subdevices package
+│   ├── nixie_clock_single_device.yaml # Basic example using single-device package
+│   └── nixie_clock_advanced.yaml      # Advanced example with explicit sub-platform entities
 └── README.md
 ```
 
