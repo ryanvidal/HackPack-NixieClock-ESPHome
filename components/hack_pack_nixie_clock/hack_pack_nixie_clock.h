@@ -18,6 +18,10 @@
 #include <cstdint>
 #include <memory>
 
+#ifndef HACK_PACK_NIXIE_CLOCK_VERSION
+#define HACK_PACK_NIXIE_CLOCK_VERSION "1.0.0"
+#endif
+
 namespace esphome {
 namespace hack_pack_nixie_clock {
 
@@ -163,6 +167,10 @@ class HackPackNixieClock : public Component {
   void set_timer_remaining_text_sensor(text_sensor::TextSensor *s) {
     text_sensor_timer_remaining_ = s;
     if (s != nullptr) s->publish_state("00:00:00");
+  }
+  void set_version_text_sensor(text_sensor::TextSensor *s) {
+    text_sensor_version_ = s;
+    if (s != nullptr) s->publish_state(HACK_PACK_NIXIE_CLOCK_VERSION);
   }
 #endif
 #ifdef USE_BINARY_SENSOR
@@ -328,6 +336,7 @@ class HackPackNixieClock : public Component {
 #endif
 #ifdef USE_TEXT_SENSOR
   text_sensor::TextSensor *text_sensor_timer_remaining_{nullptr};
+  text_sensor::TextSensor *text_sensor_version_{nullptr};
 #endif
 #ifdef USE_BINARY_SENSOR
   binary_sensor::BinarySensor *bs_alarm_ringing_{nullptr};
