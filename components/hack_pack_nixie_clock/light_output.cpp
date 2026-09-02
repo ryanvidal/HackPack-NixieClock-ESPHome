@@ -1,7 +1,7 @@
 #include "light_output.h"
 #include "hack_pack_nixie_clock.h"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 
 namespace esphome {
 namespace hack_pack_nixie_clock {
@@ -13,24 +13,35 @@ void HackPackNixieEffect::apply() {
 }
 
 void HackPackNixieLightListener::on_light_remote_values_update() {
-  if (!parent_ || parent_->is_syncing_light()) return;
-  if (!parent_->get_link_brightness()) return;
+  if (!parent_ || parent_->is_syncing_light())
+    return;
+  if (!parent_->get_link_brightness())
+    return;
 
-  light::LightState *source = (type_ == LightType::PANEL) ? parent_->get_panel_light() : parent_->get_underglow_light();
-  light::LightState *target = (type_ == LightType::PANEL) ? parent_->get_underglow_light() : parent_->get_panel_light();
+  light::LightState *source = (type_ == LightType::PANEL)
+                                  ? parent_->get_panel_light()
+                                  : parent_->get_underglow_light();
+  light::LightState *target = (type_ == LightType::PANEL)
+                                  ? parent_->get_underglow_light()
+                                  : parent_->get_panel_light();
 
-  if (source == nullptr || target == nullptr) return;
+  if (source == nullptr || target == nullptr)
+    return;
 
   bool src_on = source->remote_values.is_on();
   float src_bri = source->remote_values.get_brightness();
 
-  // Scale underglow to 80% of panel brightness to compensate for the panel's darkening film
-  float target_bri = (type_ == LightType::PANEL) ? (src_bri * 0.80f) : std::min(1.0f, src_bri / 0.80f);
+  // Scale underglow to 80% of panel brightness to compensate for the panel's
+  // darkening film
+  float target_bri = (type_ == LightType::PANEL)
+                         ? (src_bri * 0.80f)
+                         : std::min(1.0f, src_bri / 0.80f);
 
   bool tgt_on = target->remote_values.is_on();
   float tgt_bri = target->remote_values.get_brightness();
 
-  if (tgt_on == src_on && std::abs(tgt_bri - target_bri) < 0.005f) return;
+  if (tgt_on == src_on && std::abs(tgt_bri - target_bri) < 0.005f)
+    return;
 
   parent_->set_syncing_light(true);
   auto call = target->make_call();
@@ -44,7 +55,8 @@ void HackPackNixieLightListener::on_light_remote_values_update() {
 }
 
 void HackPackNixieLightOutput::write_state(light::LightState *state) {
-  if (!parent_) return;
+  if (!parent_)
+    return;
 
   float red = 0.0f, green = 0.0f, blue = 0.0f;
   state->current_values_as_rgb(&red, &green, &blue);
@@ -72,5 +84,5 @@ void HackPackNixieLightOutput::write_state(light::LightState *state) {
   }
 }
 
-}  // namespace hack_pack_nixie_clock
-}  // namespace esphome
+} // namespace hack_pack_nixie_clock
+} // namespace esphome

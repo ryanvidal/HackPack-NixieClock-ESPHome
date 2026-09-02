@@ -8,9 +8,8 @@
 namespace esphome {
 namespace hack_pack_nixie_clock {
 
-template<typename... Ts>
-class DisplayTextAction : public Action<Ts...> {
- public:
+template <typename... Ts> class DisplayTextAction : public Action<Ts...> {
+public:
   DisplayTextAction(HackPackNixieClock *parent) : parent_(parent) {}
   TEMPLATABLE_VALUE(std::string, message)
   TEMPLATABLE_VALUE(uint32_t, scroll_speed_ms)
@@ -21,13 +20,13 @@ class DisplayTextAction : public Action<Ts...> {
     this->parent_->show_scrolling_text(msg, speed > 0 ? speed : 350);
   }
 
- protected:
+protected:
   HackPackNixieClock *parent_;
 };
 
-template<typename... Ts>
+template <typename... Ts>
 class TriggerSlotMachineAction : public Action<Ts...> {
- public:
+public:
   TriggerSlotMachineAction(HackPackNixieClock *parent) : parent_(parent) {}
   TEMPLATABLE_VALUE(uint32_t, duration_ms)
 
@@ -36,26 +35,25 @@ class TriggerSlotMachineAction : public Action<Ts...> {
     this->parent_->trigger_slot_machine(dur > 0 ? dur : 2500);
   }
 
- protected:
+protected:
   HackPackNixieClock *parent_;
 };
 
-template<typename... Ts>
+template <typename... Ts>
 class TriggerFaceAnimationAction : public Action<Ts...> {
- public:
+public:
   TriggerFaceAnimationAction(HackPackNixieClock *parent) : parent_(parent) {}
 
   void play(const Ts &...x) override {
     this->parent_->trigger_face_animation();
   }
 
- protected:
+protected:
   HackPackNixieClock *parent_;
 };
 
-template<typename... Ts>
-class PlaySoundAction : public Action<Ts...> {
- public:
+template <typename... Ts> class PlaySoundAction : public Action<Ts...> {
+public:
   PlaySoundAction(HackPackNixieClock *parent) : parent_(parent) {}
   TEMPLATABLE_VALUE(uint32_t, duration_ms)
 
@@ -64,13 +62,12 @@ class PlaySoundAction : public Action<Ts...> {
     this->parent_->play_beep(dur > 0 ? dur : 150);
   }
 
- protected:
+protected:
   HackPackNixieClock *parent_;
 };
 
-template<typename... Ts>
-class StartTimerAction : public Action<Ts...> {
- public:
+template <typename... Ts> class StartTimerAction : public Action<Ts...> {
+public:
   StartTimerAction(HackPackNixieClock *parent) : parent_(parent) {}
   TEMPLATABLE_VALUE(std::string, duration)
 
@@ -84,93 +81,77 @@ class StartTimerAction : public Action<Ts...> {
     this->parent_->start_timer();
   }
 
- protected:
+protected:
   HackPackNixieClock *parent_;
 };
 
-template<typename... Ts>
-class StopTimerAction : public Action<Ts...> {
- public:
+template <typename... Ts> class StopTimerAction : public Action<Ts...> {
+public:
   StopTimerAction(HackPackNixieClock *parent) : parent_(parent) {}
 
-  void play(const Ts &...x) override {
-    this->parent_->stop_timer();
-  }
+  void play(const Ts &...x) override { this->parent_->stop_timer(); }
 
- protected:
+protected:
   HackPackNixieClock *parent_;
 };
 
-template<typename... Ts>
-class ResetTimerAction : public Action<Ts...> {
- public:
+template <typename... Ts> class ResetTimerAction : public Action<Ts...> {
+public:
   ResetTimerAction(HackPackNixieClock *parent) : parent_(parent) {}
 
-  void play(const Ts &...x) override {
-    this->parent_->reset_timer();
-  }
+  void play(const Ts &...x) override { this->parent_->reset_timer(); }
 
- protected:
+protected:
   HackPackNixieClock *parent_;
 };
 
-template<typename... Ts>
-class StopAlarmAction : public Action<Ts...> {
- public:
+template <typename... Ts> class StopAlarmAction : public Action<Ts...> {
+public:
   StopAlarmAction(HackPackNixieClock *parent) : parent_(parent) {}
 
-  void play(const Ts &...x) override {
-    this->parent_->stop_alarm();
-  }
+  void play(const Ts &...x) override { this->parent_->stop_alarm(); }
 
- protected:
+protected:
   HackPackNixieClock *parent_;
 };
 
-template<typename... Ts>
-class ArmAlarmAction : public Action<Ts...> {
- public:
+template <typename... Ts> class ArmAlarmAction : public Action<Ts...> {
+public:
   ArmAlarmAction(HackPackNixieClock *parent) : parent_(parent) {}
 
-  void play(const Ts &...x) override {
-    this->parent_->arm_alarm();
-  }
+  void play(const Ts &...x) override { this->parent_->arm_alarm(); }
 
- protected:
+protected:
   HackPackNixieClock *parent_;
 };
 
-template<typename... Ts>
-class DisarmAlarmAction : public Action<Ts...> {
- public:
+template <typename... Ts> class DisarmAlarmAction : public Action<Ts...> {
+public:
   DisarmAlarmAction(HackPackNixieClock *parent) : parent_(parent) {}
 
-  void play(const Ts &...x) override {
-    this->parent_->disarm_alarm();
-  }
+  void play(const Ts &...x) override { this->parent_->disarm_alarm(); }
 
- protected:
+protected:
   HackPackNixieClock *parent_;
 };
 
-template<typename... Ts>
-class SetAlarmAction : public Action<Ts...> {
- public:
+template <typename... Ts> class SetAlarmAction : public Action<Ts...> {
+public:
   SetAlarmAction(HackPackNixieClock *parent) : parent_(parent) {}
   TEMPLATABLE_VALUE(uint8_t, hour)
   TEMPLATABLE_VALUE(uint8_t, minute)
 
   void play(const Ts &...x) override {
-    this->parent_->set_alarm(this->hour_.value(x...), this->minute_.value(x...));
+    this->parent_->set_alarm(this->hour_.value(x...),
+                             this->minute_.value(x...));
   }
 
- protected:
+protected:
   HackPackNixieClock *parent_;
 };
 
-template<typename... Ts>
-class SetDisplayModeAction : public Action<Ts...> {
- public:
+template <typename... Ts> class SetDisplayModeAction : public Action<Ts...> {
+public:
   SetDisplayModeAction(HackPackNixieClock *parent) : parent_(parent) {}
   TEMPLATABLE_VALUE(DisplayMode, mode)
 
@@ -178,13 +159,12 @@ class SetDisplayModeAction : public Action<Ts...> {
     this->parent_->set_display_mode(this->mode_.value(x...));
   }
 
- protected:
+protected:
   HackPackNixieClock *parent_;
 };
 
-template<typename... Ts>
-class SetColorModeAction : public Action<Ts...> {
- public:
+template <typename... Ts> class SetColorModeAction : public Action<Ts...> {
+public:
   SetColorModeAction(HackPackNixieClock *parent) : parent_(parent) {}
   TEMPLATABLE_VALUE(ColorMode, mode)
 
@@ -192,35 +172,33 @@ class SetColorModeAction : public Action<Ts...> {
     this->parent_->set_color_mode(this->mode_.value(x...));
   }
 
- protected:
+protected:
   HackPackNixieClock *parent_;
 };
 
-template<typename... Ts>
-class ShowTimeAction : public Action<Ts...> {
- public:
+template <typename... Ts> class ShowTimeAction : public Action<Ts...> {
+public:
   ShowTimeAction(HackPackNixieClock *parent) : parent_(parent) {}
 
   void play(const Ts &...x) override {
     this->parent_->set_display_mode(MODE_TIME);
   }
 
- protected:
+protected:
   HackPackNixieClock *parent_;
 };
 
-template<typename... Ts>
-class ShowTimerAction : public Action<Ts...> {
- public:
+template <typename... Ts> class ShowTimerAction : public Action<Ts...> {
+public:
   ShowTimerAction(HackPackNixieClock *parent) : parent_(parent) {}
 
   void play(const Ts &...x) override {
     this->parent_->set_display_mode(MODE_TIMER);
   }
 
- protected:
+protected:
   HackPackNixieClock *parent_;
 };
 
-}  // namespace hack_pack_nixie_clock
-}  // namespace esphome
+} // namespace hack_pack_nixie_clock
+} // namespace esphome

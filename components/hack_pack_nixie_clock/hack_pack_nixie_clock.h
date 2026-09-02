@@ -1,24 +1,25 @@
 #pragma once
 
+#include "esphome/components/binary_sensor/binary_sensor.h"
+#include "esphome/components/text_sensor/text_sensor.h"
+#include "esphome/components/time/real_time_clock.h"
 #include "esphome/core/component.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/preferences.h"
-#include "esphome/components/time/real_time_clock.h"
-#include "esphome/components/text_sensor/text_sensor.h"
-#include "esphome/components/binary_sensor/binary_sensor.h"
 
-#include "types.h"
+#include "color_animations.h"
+#include "entities.h"
 #include "font_map.h"
 #include "hardware_leds.h"
 #include "light_output.h"
-#include "entities.h"
-#include "color_animations.h"
+#include "types.h"
 
-#include <string>
 #include <cstdint>
 #include <memory>
+#include <string>
 
 #ifndef HACK_PACK_NIXIE_CLOCK_VERSION
+// x-release-please-version
 #define HACK_PACK_NIXIE_CLOCK_VERSION "1.0.0"
 #endif
 
@@ -26,14 +27,16 @@ namespace esphome {
 namespace hack_pack_nixie_clock {
 
 /**
- * @brief Core controller component for the CrunchLabs Hack Pack Nixie Clock (Box 15).
- * 
- * Manages the dual-bus WS2812 LED rendering pipeline (42 panel LEDs + 13 underglow LEDs),
- * real-time clock rendering, countdown timer, alarm scheduling, animated face sequences,
- * audio beeper, cathode anti-poisoning slot machine, and Home Assistant bi-directional synchronization.
+ * @brief Core controller component for the CrunchLabs Hack Pack Nixie Clock
+ * (Box 15).
+ *
+ * Manages the dual-bus WS2812 LED rendering pipeline (42 panel LEDs + 13
+ * underglow LEDs), real-time clock rendering, countdown timer, alarm
+ * scheduling, animated face sequences, audio beeper, cathode anti-poisoning
+ * slot machine, and Home Assistant bi-directional synchronization.
  */
 class HackPackNixieClock : public Component {
- public:
+public:
   HackPackNixieClock();
 
   // Pin Configuration
@@ -49,7 +52,9 @@ class HackPackNixieClock : public Component {
   void set_btn_left_pin(uint8_t pin) { btn_left_.pin = pin; }
   void set_btn_right_pin(uint8_t pin) { btn_right_.pin = pin; }
 
-  void set_time_source(time::RealTimeClock *time_source) { time_source_ = time_source; }
+  void set_time_source(time::RealTimeClock *time_source) {
+    time_source_ = time_source;
+  }
 
   // Component Lifecycle
   void setup() override;
@@ -62,7 +67,7 @@ class HackPackNixieClock : public Component {
   void set_display_mode(DisplayMode mode);
   void set_color_mode(ColorMode mode);
   void set_colon_mode(ColonMode mode);
-  
+
   void set_24hr_mode(bool enable);
   void set_leading_zero(bool enable);
   void set_colon_blinking(bool enable);
@@ -75,7 +80,7 @@ class HackPackNixieClock : public Component {
   void set_underglow_brightness(uint8_t brightness);
   void set_panel_color_pos(uint8_t pos);
   void set_underglow_color_pos(uint8_t pos);
-  
+
   void set_panel_rgb(uint8_t r, uint8_t g, uint8_t b);
   void set_underglow_rgb(uint8_t r, uint8_t g, uint8_t b);
 
@@ -100,7 +105,8 @@ class HackPackNixieClock : public Component {
   void play_beep(uint32_t duration_ms = 150);
   void set_record_sound(bool active);
   void show_custom_text(const std::string &text, uint32_t duration_seconds = 5);
-  void show_scrolling_text(const std::string &message, uint32_t scroll_speed_ms = 350);
+  void show_scrolling_text(const std::string &message,
+                           uint32_t scroll_speed_ms = 350);
   void trigger_face_animation();
   void trigger_slot_machine(uint32_t duration_ms = 2500);
 
@@ -108,7 +114,7 @@ class HackPackNixieClock : public Component {
   DisplayMode get_display_mode() const { return display_mode_; }
   ColorMode get_color_mode() const { return color_mode_; }
   ColonMode get_colon_mode() const { return colon_mode_; }
-  
+
   bool get_24hr_mode() const { return hr24_mode_; }
   bool get_leading_zero() const { return show_lead_zero_; }
   bool get_colon_blinking() const { return colon_blinking_; }
@@ -139,7 +145,9 @@ class HackPackNixieClock : public Component {
   bool is_timer_running() const { return timer_running_; }
   bool is_timer_ringing() const { return timer_ringing_; }
   uint32_t get_timer_remaining_sec() const { return timer_remaining_sec_; }
-  const char* get_current_display_text() const { return current_display_chars_; }
+  const char *get_current_display_text() const {
+    return current_display_chars_;
+  }
 
   // Entity Registrations & Pointers
   void register_light(LightType type, light::LightState *st);
@@ -166,26 +174,31 @@ class HackPackNixieClock : public Component {
 #ifdef USE_TEXT_SENSOR
   void set_timer_remaining_text_sensor(text_sensor::TextSensor *s) {
     text_sensor_timer_remaining_ = s;
-    if (s != nullptr) s->publish_state("00:00:00");
+    if (s != nullptr)
+      s->publish_state("00:00:00");
   }
   void set_version_text_sensor(text_sensor::TextSensor *s) {
     text_sensor_version_ = s;
-    if (s != nullptr) s->publish_state(HACK_PACK_NIXIE_CLOCK_VERSION);
+    if (s != nullptr)
+      s->publish_state(HACK_PACK_NIXIE_CLOCK_VERSION);
   }
 #endif
 #ifdef USE_BINARY_SENSOR
   void set_alarm_ringing_binary_sensor(binary_sensor::BinarySensor *s) {
     bs_alarm_ringing_ = s;
-    if (s != nullptr) s->publish_state(alarm_ringing_);
+    if (s != nullptr)
+      s->publish_state(alarm_ringing_);
   }
   void set_timer_ringing_binary_sensor(binary_sensor::BinarySensor *s) {
     bs_timer_ringing_ = s;
-    if (s != nullptr) s->publish_state(timer_ringing_);
+    if (s != nullptr)
+      s->publish_state(timer_ringing_);
   }
 #endif
 
   // Methods for polymorphic animations & color calculations
-  void set_panel_segment_rgb(int panel, int segment, uint8_t r, uint8_t g, uint8_t b) {
+  void set_panel_segment_rgb(int panel, int segment, uint8_t r, uint8_t g,
+                             uint8_t b) {
     if (panel >= 0 && panel < 6 && segment >= 0 && segment < 7) {
       panel_rgb_[panel][segment][0] = r;
       panel_rgb_[panel][segment][1] = g;
@@ -193,7 +206,8 @@ class HackPackNixieClock : public Component {
     }
   }
   uint32_t get_panel_base_color() const {
-    return use_panel_custom_rgb_ ? make_rgb_(custom_r_, custom_g_, custom_b_) : wheel_(panel_color_pos_);
+    return use_panel_custom_rgb_ ? make_rgb_(custom_r_, custom_g_, custom_b_)
+                                 : wheel_(panel_color_pos_);
   }
 
   static uint32_t wheel_(uint8_t pos);
@@ -205,7 +219,7 @@ class HackPackNixieClock : public Component {
   }
   static uint32_t color_fade_(uint32_t c1, uint32_t c2, int step, int maxSteps);
 
- protected:
+protected:
   // Hardware Pins
   uint8_t panel_pin_{0};
   uint8_t underglow_pin_{1};
@@ -346,7 +360,10 @@ class HackPackNixieClock : public Component {
   // Internal Logic & Render Helpers
   void init_hardware_();
   void poll_buttons_();
-  void handle_button_(ButtonState &btn, const char *name, void (HackPackNixieClock::*on_click)(), void (HackPackNixieClock::*on_long_press)() = nullptr, void (HackPackNixieClock::*on_repeat)() = nullptr);
+  void handle_button_(ButtonState &btn, const char *name,
+                      void (HackPackNixieClock::*on_click)(),
+                      void (HackPackNixieClock::*on_long_press)() = nullptr,
+                      void (HackPackNixieClock::*on_repeat)() = nullptr);
 
   void btn_top_click_();
   void btn_top_long_();
@@ -372,7 +389,7 @@ class HackPackNixieClock : public Component {
   uint32_t blend_two_panels_(int p1, int p2) const;
 };
 
-}  // namespace hack_pack_nixie_clock
-}  // namespace esphome
+} // namespace hack_pack_nixie_clock
+} // namespace esphome
 
 #include "automation.h"

@@ -8,46 +8,46 @@ namespace hack_pack_nixie_clock {
 
 /// @brief Primary operating modes for the 6-digit Nixie tube display.
 enum DisplayMode : uint8_t {
-  MODE_TIME = 0,        ///< Real-time clock (HH:MM:SS or HH:MM)
-  MODE_TIMER,           ///< Countdown timer
-  MODE_ALARM,           ///< Alarm configuration & view mode
-  MODE_CUSTOM_TEXT,     ///< Scrolling text / notification message
-  MODE_FACE,            ///< Animated expressive ASCII faces
-  MODE_SLOT_MACHINE,    ///< Cathode anti-poisoning cycling animation
-  MODE_OFF              ///< Tubes dark / standby mode
+  MODE_TIME = 0,     ///< Real-time clock (HH:MM:SS or HH:MM)
+  MODE_TIMER,        ///< Countdown timer
+  MODE_ALARM,        ///< Alarm configuration & view mode
+  MODE_CUSTOM_TEXT,  ///< Scrolling text / notification message
+  MODE_FACE,         ///< Animated expressive ASCII faces
+  MODE_SLOT_MACHINE, ///< Cathode anti-poisoning cycling animation
+  MODE_OFF           ///< Tubes dark / standby mode
 };
 
 /// @brief Built-in color effects for the 7-segment WS2812 panel LEDs.
 enum ColorMode : uint8_t {
-  COLOR_RAINBOW = 0,    ///< Smooth rainbow spectrum wave
-  COLOR_SOLID,          ///< Static custom RGB color
-  COLOR_GRADIENT,       ///< 2-color smooth gradient across tubes
-  COLOR_FLOW,           ///< Flowing animated multi-color gradient
-  COLOR_WIPE,           ///< Tube-by-tube color wipe animation
-  COLOR_PULSE,          ///< Expanding center-out color pulse
-  COLOR_BOUNCE          ///< Bouncing color streak
+  COLOR_RAINBOW = 0, ///< Smooth rainbow spectrum wave
+  COLOR_SOLID,       ///< Static custom RGB color
+  COLOR_GRADIENT,    ///< 2-color smooth gradient across tubes
+  COLOR_FLOW,        ///< Flowing animated multi-color gradient
+  COLOR_WIPE,        ///< Tube-by-tube color wipe animation
+  COLOR_PULSE,       ///< Expanding center-out color pulse
+  COLOR_BOUNCE       ///< Bouncing color streak
 };
 
 /// @brief Blending and color behavior for the inter-tube colon LEDs.
 enum ColonMode : uint8_t {
-  COLON_AUTO_BLEND = 0,     ///< Automatically blends color of adjacent tubes
-  COLON_MATCH_UNDERGLOW,    ///< Follows the lower badge underglow color
-  COLON_FIXED               ///< Uses fixed configured color
+  COLON_AUTO_BLEND = 0,  ///< Automatically blends color of adjacent tubes
+  COLON_MATCH_UNDERGLOW, ///< Follows the lower badge underglow color
+  COLON_FIXED            ///< Uses fixed configured color
 };
 
 /// @brief State machine phases for scrolling text messages.
 enum CustomTextPhase : uint8_t {
-  TEXT_PHASE_IDLE = 0,      ///< No message active
-  TEXT_PHASE_BLANK_START,   ///< Initial 1-second blank pause
-  TEXT_PHASE_FLASH_ALERT,   ///< 2-second pulsating "- - - " alert banner
-  TEXT_PHASE_SCROLL,        ///< Character-by-character window scrolling
-  TEXT_PHASE_BLANK_END      ///< Trailing 1-second blank pause
+  TEXT_PHASE_IDLE = 0,    ///< No message active
+  TEXT_PHASE_BLANK_START, ///< Initial 1-second blank pause
+  TEXT_PHASE_FLASH_ALERT, ///< 2-second pulsating "- - - " alert banner
+  TEXT_PHASE_SCROLL,      ///< Character-by-character window scrolling
+  TEXT_PHASE_BLANK_END    ///< Trailing 1-second blank pause
 };
 
 /// @brief Hardware LED bus identifier.
 enum class LightType : uint8_t {
-  PANEL = 0,        ///< 42 WS2812 LEDs on GPIO0 (6 tubes x 7 segments)
-  UNDERGLOW = 1     ///< 13 WS2812 LEDs on GPIO1 (2 colons, 8 badge, 3 indicators)
+  PANEL = 0,    ///< 42 WS2812 LEDs on GPIO0 (6 tubes x 7 segments)
+  UNDERGLOW = 1 ///< 13 WS2812 LEDs on GPIO1 (2 colons, 8 badge, 3 indicators)
 };
 
 enum class SwitchType : uint8_t {
@@ -100,14 +100,16 @@ struct ButtonState {
 
 // =============================================================================
 // NVS Storage Schema Versioning
-// IMPORTANT: Increment NIXIE_STORAGE_VERSION whenever changing the fields, order,
-// or data types in NixieClockStorage to prevent reading stale flash data!
+// IMPORTANT: Increment NIXIE_STORAGE_VERSION whenever changing the fields,
+// order, or data types in NixieClockStorage to prevent reading stale flash
+// data!
 // =============================================================================
-#define NIXIE_STORAGE_MAGIC 0x4E58   ///< 'NX' magic identifier
-#define NIXIE_STORAGE_VERSION 1      ///< Current storage schema version
+#define NIXIE_STORAGE_MAGIC 0x4E58 ///< 'NX' magic identifier
+#define NIXIE_STORAGE_VERSION 1    ///< Current storage schema version
 
 /// @brief Non-volatile storage struct for persistent user preferences.
-/// Includes magic header and versioning to prevent flash corruption across upgrades.
+/// Includes magic header and versioning to prevent flash corruption across
+/// upgrades.
 struct NixieClockStorage {
   uint16_t magic{NIXIE_STORAGE_MAGIC};
   uint16_t version{NIXIE_STORAGE_VERSION};
@@ -125,5 +127,5 @@ struct NixieClockStorage {
   uint32_t timer_duration_sec{300};
 } __attribute__((packed));
 
-}  // namespace hack_pack_nixie_clock
-}  // namespace esphome
+} // namespace hack_pack_nixie_clock
+} // namespace esphome

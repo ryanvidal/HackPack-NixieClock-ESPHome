@@ -2,13 +2,58 @@ name: ESPHome CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
-  validate:
+  lint:
+    name: Lint & Style
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Linters
+        run: |
+          pip install ruff
+          sudo apt-get update && sudo apt-get install -y clang-format
+
+      - name: Check Python Code (Ruff)
+        run: ruff check --output-format=github components/
+
+      - name: Check C++ Formatting (clang-format)
+        run: |
+          # Matches all C++ and header files inside components/
+          find components/ -type f \( -name "*.cpp" -o -name "*.h" \) -print0 | xargs -0 --no-run-if-empty clang-format --dry-run --Werror
+
+      - name: Report Lint Summary
+        if: always()
+        run: |
+          echo "### 🎨 Code Quality & Style Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status | Tool |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| Python Code Quality | ${{ job.status == 'success' && '✅ Passed' || '❌ Issues Found' }} | Ruff |" >> $GITHUB_STEP_SUMMARY
+          echo "| C++ Code Formatting | ${{ job.status == 'success' && '✅ Passed' || '❌ Issues Found' }} | clang-format |" >> $GITHUB_STEP_SUMMARY
+
+  build:
+    name: Build (${{ matrix.name }})
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Basic Configuration
+            example: examples/nixie_clock_basic.yaml
+          - name: Advanced Configuration
+            example: examples/nixie_clock_advanced.yaml
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -16,11 +61,21 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
+
+      - name: Restore PlatformIO Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            .esphome
+          key: ${{ runner.os }}-pio-${{ matrix.example }}-${{ hashFiles(matrix.example, 'components/**') }}
+          restore-keys: |
+            ${{ runner.os }}-pio-${{ matrix.example }}-
+            ${{ runner.os }}-pio-
 
       - name: Install ESPHome
-        run: |
-          pip install esphome
+        run: pip install esphome
 
       - name: Create mock secrets for CI
         run: |
@@ -29,10 +84,22 @@ jobs:
           wifi_password: "MockPassword123"
           EOF
 
-      - name: Compile Basic Example
-        run: |
-          esphome compile examples/nixie_clock_basic.yaml
+      - name: Validate Config Schema
+        run: esphome config ${{ matrix.example }}
 
-      - name: Compile Advanced Example
+      - name: Compile Example
+        run: esphome compile ${{ matrix.example }}
+
+      - name: Generate Build Summary
+        if: always()
         run: |
-          esphome compile examples/nixie_clock_advanced.yaml
+          echo "### 📦 Build Result: ${{ matrix.name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Configuration:** \`${{ matrix.example }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ${{ job.status == 'success' && '✅ **Passed**' || '❌ **Failed**' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target SoC:** ESP32-C3 Mini (ESP-IDF)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Validation Step | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| Config Schema | ✅ Valid |" >> $GITHUB_STEP_SUMMARY
+          echo "| Firmware Compilation | ${{ job.status == 'success' && '✅ Compiled' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
