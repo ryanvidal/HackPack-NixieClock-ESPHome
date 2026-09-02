@@ -2,12 +2,13 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import text_sensor
 from esphome.const import (
-    CONF_ID,
-    CONF_ICON,
-    CONF_ENTITY_CATEGORY,
     ENTITY_CATEGORY_DIAGNOSTIC,
 )
-from . import hack_pack_nixie_clock_ns, HackPackNixieClock, CONF_HACK_PACK_NIXIE_CLOCK_ID
+
+from . import (
+    CONF_HACK_PACK_NIXIE_CLOCK_ID,
+    HackPackNixieClock,
+)
 
 CONF_TIMER_REMAINING = "timer_remaining"
 CONF_VERSION = "version"

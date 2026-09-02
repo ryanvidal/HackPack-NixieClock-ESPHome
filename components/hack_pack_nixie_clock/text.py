@@ -1,12 +1,12 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import text
-from esphome.const import (
-    CONF_ID,
-    CONF_ICON,
-    CONF_MODE,
+
+from . import (
+    CONF_HACK_PACK_NIXIE_CLOCK_ID,
+    HackPackNixieClock,
+    hack_pack_nixie_clock_ns,
 )
-from . import hack_pack_nixie_clock_ns, HackPackNixieClock, CONF_HACK_PACK_NIXIE_CLOCK_ID
 
 HackPackNixieText = hack_pack_nixie_clock_ns.class_(
     "HackPackNixieText", text.Text, cg.Component

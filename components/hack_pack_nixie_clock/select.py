@@ -2,13 +2,14 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import select
 from esphome.const import (
-    CONF_ID,
-    CONF_ICON,
-    CONF_OPTIONS,
-    CONF_ENTITY_CATEGORY,
     ENTITY_CATEGORY_CONFIG,
 )
-from . import hack_pack_nixie_clock_ns, HackPackNixieClock, CONF_HACK_PACK_NIXIE_CLOCK_ID
+
+from . import (
+    CONF_HACK_PACK_NIXIE_CLOCK_ID,
+    HackPackNixieClock,
+    hack_pack_nixie_clock_ns,
+)
 
 HackPackNixieSelect = hack_pack_nixie_clock_ns.class_(
     "HackPackNixieSelect", select.Select, cg.Component

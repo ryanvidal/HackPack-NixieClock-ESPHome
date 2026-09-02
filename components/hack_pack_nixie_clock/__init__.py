@@ -1,13 +1,13 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome import pins, automation
+from esphome import automation, pins
 from esphome.automation import maybe_simple_id
+from esphome.components import (
+    time as time_,
+)
 from esphome.const import (
     CONF_ID,
     CONF_TIME_ID,
-)
-from esphome.components import (
-    time as time_,
 )
 
 __version__ = "1.0.0"
