@@ -51,6 +51,8 @@ jobs:
         include:
           - name: Basic Configuration
             example: examples/nixie_clock_basic.yaml
+          - name: Single Device Configuration
+            example: examples/nixie_clock_single_device.yaml
           - name: Advanced Configuration
             example: examples/nixie_clock_advanced.yaml
 
@@ -82,6 +84,7 @@ jobs:
           cat << 'EOF' > examples/secrets.yaml
           wifi_ssid: "MockWiFiSSID"
           wifi_password: "MockPassword123"
+          api_encryption_key: "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE="
           EOF
 
       - name: Validate Config Schema

@@ -11,15 +11,13 @@ esphome:
   name: hack-pack-nixie-clock
   friendly_name: Hack Pack Nixie Clock
   devices:
-    - name: "Clock & Display"
+    - name: "Nixie Clock Display"
       id: dev_clock
-    - name: "Lighting"
-      id: dev_lighting
-    - name: "Alarm Clock"
+    - name: "Nixie Clock Alarm Clock"
       id: dev_alarm
-    - name: "Countdown Timer"
+    - name: "Nixie Clock Countdown Timer"
       id: dev_timer
-    - name: "Audio & Voice"
+    - name: "Nixie Clock Audio Controls"
       id: dev_audio
 
 esp32:
@@ -32,7 +30,7 @@ logger:
 
 api:
   encryption:
-    key: "8i45eOZdKzZQ8YGeFdT+ilopNh075J5aBgEnZTZUeT4="
+    key: !secret api_encryption_key
   actions:
     # --------------------------------------------------------------------------
     # Action: Display Alert & Scrolling Custom Text on Nixie Tubes
@@ -108,7 +106,6 @@ wifi:
   password: !secret wifi_password
   ap:
     ssid: Hack Pack Nixie Fallback Hotspot
-    password: "IXtO3BrtHqLm"
 
 captive_portal:
 
@@ -145,7 +142,7 @@ light:
     type: panel
     name: "Nixie Tube Lighting"
     id: light_panel
-    device_id: dev_lighting
+    device_id: dev_clock
     icon: "mdi:led-strip"
     restore_mode: RESTORE_DEFAULT_ON
 
@@ -153,7 +150,7 @@ light:
     type: underglow
     name: "Underglow Lighting"
     id: light_underglow
-    device_id: dev_lighting
+    device_id: dev_clock
     icon: "mdi:wall-sconce-flat"
     restore_mode: RESTORE_DEFAULT_ON
 
@@ -194,7 +191,7 @@ switch:
       device_id: dev_clock
     link_brightness:
       name: "Link Panel & Underglow Brightness"
-      device_id: dev_lighting
+      device_id: dev_clock
     alarm_enabled:
       name: "Alarm Enabled"
       device_id: dev_alarm
