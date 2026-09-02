@@ -22,6 +22,17 @@ jobs:
         run: |
           pip install esphome
 
+      - name: Create mock secrets for CI
+        run: |
+          cat << 'EOF' > examples/secrets.yaml
+          wifi_ssid: "MockWiFiSSID"
+          wifi_password: "MockPassword123"
+          EOF
+
       - name: Compile Basic Example
         run: |
           esphome compile examples/nixie_clock_basic.yaml
+
+      - name: Compile Advanced Example
+        run: |
+          esphome compile examples/nixie_clock_advanced.yaml
