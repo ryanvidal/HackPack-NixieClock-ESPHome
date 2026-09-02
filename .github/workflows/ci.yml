@@ -5,11 +5,13 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   lint:
     name: Lint & Style
     runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch' || github.actor == 'ryanvidal'
     steps:
       - uses: actions/checkout@v4
 
