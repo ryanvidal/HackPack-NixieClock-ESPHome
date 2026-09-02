@@ -35,14 +35,19 @@ HackPackNixieClock::HackPackNixieClock() {
 }
 
 void HackPackNixieClock::setup() {
-  ESP_LOGI(TAG, "Initializing Hack Pack Nixie Clock Component...");
+  ESP_LOGI(TAG, "Initializing Hack Pack Nixie Clock Component v%s...", HACK_PACK_NIXIE_CLOCK_VERSION);
   init_hardware_();
   load_preferences_();
   current_animation_ = create_color_animation(color_mode_);
   if (current_animation_) {
     current_animation_->setup(this);
   }
-  ESP_LOGI(TAG, "Hack Pack Nixie Clock initialized successfully");
+#ifdef USE_TEXT_SENSOR
+  if (text_sensor_version_ != nullptr) {
+    text_sensor_version_->publish_state(HACK_PACK_NIXIE_CLOCK_VERSION);
+  }
+#endif
+  ESP_LOGI(TAG, "Hack Pack Nixie Clock v%s initialized successfully", HACK_PACK_NIXIE_CLOCK_VERSION);
 }
 
 void HackPackNixieClock::dump_config() {

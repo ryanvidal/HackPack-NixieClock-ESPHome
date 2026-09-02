@@ -10,6 +10,8 @@ from esphome.components import (
     time as time_,
 )
 
+__version__ = "1.0.0"
+
 # Component namespace
 hack_pack_nixie_clock_ns = cg.esphome_ns.namespace('hack_pack_nixie_clock')
 HackPackNixieClock = hack_pack_nixie_clock_ns.class_('HackPackNixieClock', cg.Component)
@@ -90,6 +92,7 @@ CONFIG_SCHEMA = cv.Schema({
 
 
 async def to_code(config):
+    cg.add_define("HACK_PACK_NIXIE_CLOCK_VERSION", __version__)
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
 
