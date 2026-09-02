@@ -302,9 +302,11 @@ This integration includes multi-layered protections configured out of the box in
 
 1. **Automatic Pre-Flight Blackout Hook (`set_ready_for_ota()`)**:
    When an OTA update begins, the component's `ota: on_begin` trigger automatically zeroes out all 55 LEDs and disables the display, reducing current draw to near zero before writing flash sectors.
-2. **Post-Flash Dark Mode (`on_end`)**:
-   Maintains blackout state until the MCU successfully finishes rebooting into the new firmware.
-3. **Calibrated Brownout Level Configuration**:
+2. **Wi-Fi Output Power Reduction (13 dBm)**:
+   In `set_ready_for_ota()`, the Wi-Fi transceiver transmission power is throttled down to **13 dBm** via ESP-IDF `esp_wifi_set_max_tx_power(52)`, significantly cutting Wi-Fi power consumption during the payload receipt and SPI flash write phases.
+3. **Post-Flash Dark Mode (`on_end`)**:
+   Maintains blackout state and low Wi-Fi power until the MCU successfully finishes rebooting into the new firmware.
+4. **Calibrated Brownout Level Configuration**:
    In `esp32.framework.sdkconfig_options`, `CONFIG_ESP_BROWNOUT_DET_LVL_SEL_0: y` lowers the brownout trigger threshold to **2.41V**, giving maximum headroom against transient voltage dips.
 
 ### Best Practices for Reliable Updates
