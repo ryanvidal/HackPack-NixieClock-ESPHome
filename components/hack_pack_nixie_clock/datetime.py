@@ -1,11 +1,12 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import datetime
-from esphome.const import (
-    CONF_ID,
-    CONF_ICON,
+
+from . import (
+    CONF_HACK_PACK_NIXIE_CLOCK_ID,
+    HackPackNixieClock,
+    hack_pack_nixie_clock_ns,
 )
-from . import hack_pack_nixie_clock_ns, HackPackNixieClock, CONF_HACK_PACK_NIXIE_CLOCK_ID
 
 HackPackNixieTime = hack_pack_nixie_clock_ns.class_(
     "HackPackNixieTime", datetime.TimeEntity, cg.Component

@@ -2,15 +2,14 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import number
 from esphome.const import (
-    CONF_ID,
-    CONF_ICON,
-    CONF_UNIT_OF_MEASUREMENT,
-    CONF_MIN_VALUE,
-    CONF_MAX_VALUE,
-    CONF_STEP,
     CONF_MODE,
 )
-from . import hack_pack_nixie_clock_ns, HackPackNixieClock, CONF_HACK_PACK_NIXIE_CLOCK_ID
+
+from . import (
+    CONF_HACK_PACK_NIXIE_CLOCK_ID,
+    HackPackNixieClock,
+    hack_pack_nixie_clock_ns,
+)
 
 HackPackNixieNumber = hack_pack_nixie_clock_ns.class_(
     "HackPackNixieNumber", number.Number, cg.Component
